@@ -55,6 +55,22 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Return the number of elements contained in the arena.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Return the number of elements the arena can hold without allocating,
+    /// including the elements currently in the arena.
+    pub fn capacity(&self) -> usize {
+        self.storage.capacity()
+    }
+
+    /// Returns whether the arena is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Insert a new value into the arena, returning an index that can be used
     /// to later retrieve the value.
     pub fn insert(&mut self, value: T) -> Index {
