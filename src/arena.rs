@@ -36,10 +36,20 @@ enum Entry<T> {
 }
 
 impl<T> Arena<T> {
-    /// Construct an empty `Arena`.
+    /// Construct an empty arena.
     pub fn new() -> Self {
         Self {
             storage: Vec::new(),
+            len: 0,
+            first_free: None,
+        }
+    }
+
+    /// Construct an empty arena with space to hold exactly `capacity` elements
+    /// without reallocating.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            storage: Vec::with_capacity(capacity),
             len: 0,
             first_free: None,
         }
@@ -224,7 +234,7 @@ impl<'a, T> ExactSizeIterator for Drain<'a, T> {}
 
 #[cfg(test)]
 mod test {
-    use super::Index;
+    use super::{Arena, Index};
 
     use std::mem::size_of;
 
@@ -232,5 +242,19 @@ mod test {
     fn size_of_index() {
         assert_eq!(size_of::<Index>(), 16);
         assert_eq!(size_of::<Option<Index>>(), 16);
+    }
+
+    #[test]
+    fn new() {
+        let arena: Arena<u32> = Arena::new();
+        assert_eq!(arena.storage.len(), 0);
+        assert_eq!(arena.storage.capacity(), 0);
+    }
+
+    #[test]
+    fn with_capacity() {
+        let arena: Arena<u32> = Arena::with_capacity(8);
+        assert_eq!(arena.storage.len(), 0);
+        assert_eq!(arena.storage.capacity(), 8);
     }
 }
