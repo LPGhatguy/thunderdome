@@ -1,3 +1,5 @@
+#![deny(clippy::integer_arithmetic)]
+
 use std::convert::TryInto;
 use std::iter::{ExactSizeIterator, FusedIterator};
 use std::mem::replace;
