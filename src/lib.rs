@@ -8,9 +8,6 @@ Generational arena inspired by
 [slotmap](https://crates.io/crates/slotmap), and
 [slab](https://crates.io/crates/slab).
 
-**Thunderdome should probably not (yet) be used in real projects. It is severely
-under-tested.**
-
 ## Basic Examples
 
 ```rust
@@ -47,7 +44,6 @@ assert_eq!(arena.get(foo), None);
 | Non-`Copy` Values            | Yes         | Yes                | Sorta¹  | Yes  |
 | no-std support               | No          | Yes                | No      | No   |
 | Serde support                | No          | Yes                | Yes     | No   |
-| Should be used               | No          | Yes                | Yes     | Yes  |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
 
