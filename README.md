@@ -39,8 +39,8 @@ assert_eq!(arena.get(foo), None);
 | Feature                      | Thunderdome | generational-arena | slotmap | slab |
 |------------------------------|-------------|--------------------|---------|------|
 | Generational Indices         | Yes         | Yes                | Yes     | No   |
-| `size_of::<Index>()`         | 16          | 16                 | 8       | 8    |
-| `size_of::<Option<Index>>()` | 16          | 24                 | 8       | 16   |
+| `size_of::<Index>()`         | 8           | 16                 | 8       | 8    |
+| `size_of::<Option<Index>>()` | 8           | 24                 | 8       | 16   |
 | Non-`Copy` Values            | Yes         | Yes                | Sorta¹  | Yes  |
 | no-std support               | No          | Yes                | No      | No   |
 | Serde support                | No          | Yes                | Yes     | No   |
@@ -53,7 +53,7 @@ assert_eq!(arena.get(foo), None);
 
 ### Minimum Supported Rust Version (MSRV)
 
-Thunderdome supports Rust 1.31.0 and newer. Until Thunderdome reaches 1.0,
+Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
 
