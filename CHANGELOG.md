@@ -1,6 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Added `Default` implementation for `Arena`.
 
 ## 0.2.0 (2020-09-03)
 * Bumped MSRV to 1.34.1.
