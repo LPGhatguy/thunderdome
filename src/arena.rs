@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::iter::{ExactSizeIterator, FusedIterator};
 use std::mem::replace;
 use std::ops;
@@ -19,7 +20,7 @@ pub struct Arena<T> {
 /// Index type for [`Arena`][Arena] that has a generation attached to it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Index {
-    slot: usize,
+    slot: u32,
     generation: Generation,
 }
 
@@ -99,13 +100,16 @@ impl<T> Arena<T> {
     /// to later retrieve the value.
     pub fn insert(&mut self, value: T) -> Index {
         // This value will definitely be inserted, so we can update length now.
-        self.len += 1;
+        self.len = self
+            .len
+            .checked_add(1)
+            .unwrap_or_else(|| panic!("Cannot insert more than u32::MAX elements into Arena"));
 
         // If there was a previously free entry, we can re-use its slot as long
         // as we increment its generation.
         if let Some(free_pointer) = self.first_free {
             let slot = free_pointer.slot();
-            let entry = self.storage.get_mut(slot).unwrap_or_else(|| {
+            let entry = self.storage.get_mut(slot as usize).unwrap_or_else(|| {
                 unreachable!("first_free pointed past the end of the arena's storage")
             });
 
@@ -127,8 +131,11 @@ impl<T> Arena<T> {
         } else {
             // There were no more empty entries left in our free list, so we'll
             // create a new first-generation entry and push it into storage.
-            let slot = self.storage.len();
+
             let generation = Generation::first();
+            let slot: u32 = self.storage.len().try_into().unwrap_or_else(|_| {
+                unreachable!("Arena storage exceeded what can be represented by a u32")
+            });
 
             self.storage
                 .push(Entry::Occupied(OccupiedEntry { generation, value }));
@@ -141,7 +148,7 @@ impl<T> Arena<T> {
     /// [`Index`][Index], returning `None` if the index is not contained in the
     /// arena.
     pub fn get(&self, index: Index) -> Option<&T> {
-        match self.storage.get(index.slot) {
+        match self.storage.get(index.slot as usize) {
             Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
                 Some(&occupied.value)
             }
@@ -152,7 +159,7 @@ impl<T> Arena<T> {
     /// Get a mutable reference to a value inside the arena by [`Index`][Index],
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
-        match self.storage.get_mut(index.slot) {
+        match self.storage.get_mut(index.slot as usize) {
             Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
                 Some(&mut occupied.value)
             }
@@ -163,7 +170,7 @@ impl<T> Arena<T> {
     /// Remove the value contained at the given index from the arena, returning
     /// it if it was present.
     pub fn remove(&mut self, index: Index) -> Option<T> {
-        let entry = self.storage.get_mut(index.slot)?;
+        let entry = self.storage.get_mut(index.slot as usize)?;
 
         match entry {
             Entry::Occupied(occupied) if occupied.generation == index.generation => {
@@ -186,7 +193,7 @@ impl<T> Arena<T> {
                 // entry will be used before this one (FILO).
                 self.first_free = Some(FreePointer::from_slot(index.slot));
 
-                self.len -= 1;
+                self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
 
                 Some(value)
             }
@@ -209,8 +216,8 @@ impl<T> Arena<T> {
 
     /// This method is a lot like `remove`, but takes no generation. It's used
     /// as part of `drain` and can likely be exposed as a public API eventually.
-    fn remove_entry_by_slot(&mut self, slot: usize) -> Option<(Index, T)> {
-        let entry = self.storage.get_mut(slot)?;
+    fn remove_entry_by_slot(&mut self, slot: u32) -> Option<(Index, T)> {
+        let entry = self.storage.get_mut(slot as usize)?;
 
         match entry {
             Entry::Occupied(occupied) => {
@@ -236,7 +243,7 @@ impl<T> Arena<T> {
                 // should an insertion happen.
                 self.first_free = Some(FreePointer::from_slot(slot));
 
-                self.len -= 1;
+                self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
 
                 Some((index, value))
             }
@@ -264,7 +271,7 @@ impl<T> ops::IndexMut<Index> for Arena<T> {
 /// See [`Arena::drain`][Arena::drain].
 pub struct Drain<'a, T> {
     arena: &'a mut Arena<T>,
-    slot: usize,
+    slot: u32,
 }
 
 impl<'a, T> Iterator for Drain<'a, T> {
@@ -281,13 +288,13 @@ impl<'a, T> Iterator for Drain<'a, T> {
 
             let slot = self.slot;
 
-            // It's unlikely that we'll overflow a usize, but in the event that
-            // we do, we should always panic. Rust will, by default, panic on
-            // overflow in debug, but silently wrap in release.
+            // In the event that we overflow a u32, we should always panic. Rust
+            // will, by default, panic on overflow in debug, but silently wrap
+            // in release.
             self.slot = self
                 .slot
                 .checked_add(1)
-                .unwrap_or_else(|| panic!("Overflowed usize trying to drain Arena"));
+                .unwrap_or_else(|| panic!("Overflowed u32 trying to drain Arena"));
 
             // If this entry is occupied, this method will mark it as an empty.
             // Otherwise, we'll continue looping until we've drained all
@@ -315,8 +322,8 @@ mod test {
 
     #[test]
     fn size_of_index() {
-        assert_eq!(size_of::<Index>(), 16);
-        assert_eq!(size_of::<Option<Index>>(), 16);
+        assert_eq!(size_of::<Index>(), 8);
+        assert_eq!(size_of::<Option<Index>>(), 8);
     }
 
     #[test]

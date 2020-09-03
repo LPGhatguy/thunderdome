@@ -1,6 +1,9 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Bumped MSRV to 1.34.1.
+* Reduced size of `Index` by limiting `Arena` to 2^32 elements and 2^32 generations per slot.
+	* These limits should not be hit in practice, but will consistently trigger panics.
 
 ## 0.1.1 (2020-09-02)
 * Added `Arena::with_capacity` for preallocating space.

@@ -1,27 +1,27 @@
-use std::num::NonZeroUsize;
+use std::num::NonZeroU32;
 
-/// Contains a reference to a free slot in an arena, encapsulating NonZeroUsize
+/// Contains a reference to a free slot in an arena, encapsulating NonZeroU32
 /// to prevent off-by-one errors and leaking unsafety.
 ///
-/// Uses NonZeroUsize to stay small when put inside an `Option`.
+/// Uses NonZeroU32 to stay small when put inside an `Option`.
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub(crate) struct FreePointer(NonZeroUsize);
+pub(crate) struct FreePointer(NonZeroU32);
 
 impl FreePointer {
     #[must_use]
-    pub(crate) fn from_slot(slot: usize) -> Self {
+    pub(crate) fn from_slot(slot: u32) -> Self {
         let value = slot
             .checked_add(1)
-            .expect("usize overflowed calculating free pointer from usize");
+            .expect("u32 overflowed calculating free pointer from u32");
 
-        // This is safe because any usize + 1 that didn't overflow must not be
+        // This is safe because any u32 + 1 that didn't overflow must not be
         // zero.
-        FreePointer(unsafe { NonZeroUsize::new_unchecked(value) })
+        FreePointer(unsafe { NonZeroU32::new_unchecked(value) })
     }
 
     #[must_use]
-    pub(crate) fn slot(self) -> usize {
+    pub(crate) fn slot(self) -> u32 {
         self.0.get() - 1
     }
 }
@@ -37,8 +37,8 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "usize overflowed calculating free pointer from usize")]
+    #[should_panic(expected = "u32 overflowed calculating free pointer from u32")]
     fn panic_on_overflow() {
-        let _ = FreePointer::from_slot(std::usize::MAX);
+        let _ = FreePointer::from_slot(std::u32::MAX);
     }
 }

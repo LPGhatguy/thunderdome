@@ -1,19 +1,19 @@
-use std::num::NonZeroU64;
+use std::num::NonZeroU32;
 
-/// Tracks the generation of an entry in an arena. Encapsulates NonZeroU64 to
+/// Tracks the generation of an entry in an arena. Encapsulates NonZeroU32 to
 /// reduce the number of redundant checks needed, as well as enforcing checked
 /// arithmetic on advancing a generation.
 ///
-/// Uses NonZeroU64 to help `Index` stay the same size when put inside an
+/// Uses NonZeroU32 to help `Index` stay the same size when put inside an
 /// `Option`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
-pub(crate) struct Generation(NonZeroU64);
+pub(crate) struct Generation(NonZeroU32);
 
 impl Generation {
     #[must_use]
     pub(crate) fn first() -> Self {
-        Generation(unsafe { NonZeroU64::new_unchecked(1) })
+        Generation(unsafe { NonZeroU32::new_unchecked(1) })
     }
 
     #[must_use]
@@ -21,11 +21,11 @@ impl Generation {
         let last_generation = self.0.get();
         let next_generation = last_generation
             .checked_add(1)
-            .expect("u64 overflowed calculating next generation");
+            .expect("u32 overflowed calculating next generation");
 
-        // This is safe because any u64 + 1 that didn't overflow must not be
+        // This is safe because any u32 + 1 that didn't overflow must not be
         // zero.
-        Generation(unsafe { NonZeroU64::new_unchecked(next_generation) })
+        Generation(unsafe { NonZeroU32::new_unchecked(next_generation) })
     }
 }
 
@@ -33,7 +33,7 @@ impl Generation {
 mod test {
     use super::Generation;
 
-    use std::num::NonZeroU64;
+    use std::num::NonZeroU32;
 
     #[test]
     fn first_and_next() {
@@ -45,9 +45,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "u64 overflowed calculating next generation")]
+    #[should_panic(expected = "u32 overflowed calculating next generation")]
     fn panic_on_overflow() {
-        let max = Generation(NonZeroU64::new(std::u64::MAX).unwrap());
+        let max = Generation(NonZeroU32::new(std::u32::MAX).unwrap());
         let _next = max.next();
     }
 }
