@@ -5,7 +5,7 @@ Generational arena inspired by
 [slab](https://crates.io/crates/slab).
 
 **Thunderdome should probably not (yet) be used in real projects. It is severely
-under-tested and contains a small amount of unsafe code.**
+under-tested.**
 
 ## Basic Examples
 
