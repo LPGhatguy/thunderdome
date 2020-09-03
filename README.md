@@ -1,6 +1,6 @@
 # Thunderdome
 
-[![GitHub CI Status](https://github.com/LPGhatguy/thunderdome/workflows/CI/badge.svg)](https://github.com/Roblox/rbx-dom/actions)
+[![GitHub CI Status](https://github.com/LPGhatguy/thunderdome/workflows/CI/badge.svg)](https://github.com/LPGhatguy/thunderdome/actions)
 [![thunderdome on crates.io](https://img.shields.io/crates/v/thunderdome.svg)](https://crates.io/crates/thunderdome)
 [![thunderdome docs](https://img.shields.io/badge/docs-docs.rs-orange.svg)](https://docs.rs/thunderdome)
 
@@ -42,20 +42,23 @@ assert_eq!(arena.get(foo), None);
 
 | Feature                      | Thunderdome | generational-arena | slotmap | slab |
 |------------------------------|-------------|--------------------|---------|------|
-| Generational Indices         | Yes         | Yes                | Yes     | No   |
+| Generational Indices¹        | Yes         | Yes                | Yes     | No   |
 | `size_of::<Index>()`         | 8           | 16                 | 8       | 8    |
 | `size_of::<Option<Index>>()` | 8           | 24                 | 8       | 16   |
-| Non-`Copy` Values            | Yes         | Yes                | Sorta¹  | Yes  |
-| no-std support               | No          | Yes                | No      | No   |
-| Serde support                | No          | Yes                | Yes     | No   |
-| [Immune to ABA Problem][ABA] | Yes         | Yes                | Yes     | No   |
+| Max Elements                 | 2³²         | 2⁶⁴                | 2³²     | 2⁶⁴  |
+| Non-`Copy` Values            | Yes         | Yes                | Sorta²  | Yes  |
+| `no_std` Support             | No          | Yes                | No      | No   |
+| Serde Support                | No          | Yes                | Yes     | No   |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
 * See [the Thunderdome comparison
   Cargo.toml](https://github.com/LPGhatguy/thunderdome/blob/main/comparison/Cargo.toml)
   for versions of each library tested.
 
-1. slotmap's `SlotMap` and `HopSlotMap` require values to be `Copy` on stable
+1. Generational indices help solve the [ABA
+   Problem](https://en.wikipedia.org/wiki/ABA_problem), which can cause dangling
+   keys to mistakenly access newly-inserted data.
+2. slotmap's `SlotMap` and `HopSlotMap` require values to be `Copy` on stable
   Rust versions. slotmap's `DenseSlotMap` type supports non-`Copy` types on
   stable, but has different performance trade-offs.
 
@@ -64,8 +67,6 @@ assert_eq!(arena.get(foo), None);
 Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
-
-[ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
 ## License
 

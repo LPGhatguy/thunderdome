@@ -13,18 +13,16 @@ pub(crate) struct Generation(NonZeroU32);
 impl Generation {
     #[must_use]
     pub(crate) fn first() -> Self {
+        // This is safe because 1 is not zero.
         Generation(unsafe { NonZeroU32::new_unchecked(1) })
     }
 
     #[must_use]
     pub(crate) fn next(self) -> Self {
         let last_generation = self.0.get();
-        let next_generation = last_generation
-            .checked_add(1)
-            .expect("u32 overflowed calculating next generation");
+        let next_generation = last_generation.checked_add(1).unwrap_or(1);
 
-        // This is safe because any u32 + 1 that didn't overflow must not be
-        // zero.
+        // This is safe because value that would overflow is instead made 1.
         Generation(unsafe { NonZeroU32::new_unchecked(next_generation) })
     }
 }
@@ -45,9 +43,11 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "u32 overflowed calculating next generation")]
-    fn panic_on_overflow() {
+    fn wrap_on_overflow() {
         let max = Generation(NonZeroU32::new(std::u32::MAX).unwrap());
-        let _next = max.next();
+        assert_eq!(max.0.get(), std::u32::MAX);
+
+        let next = max.next();
+        assert_eq!(next.0.get(), 1);
     }
 }
