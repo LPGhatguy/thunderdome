@@ -51,6 +51,12 @@ assert_eq!(arena.get(foo), None);
   Rust versions. slotmap's `DenseSlotMap` type supports non-`Copy` types on
   stable, but has different performance trade-offs.
 
+### Minimum Supported Rust Version (MSRV)
+
+Thunderdome supports Rust 1.31.0 and newer. Until Thunderdome reaches 1.0,
+changes to the MSRV will require major version bumps. After 1.0, MSRV changes
+will only require minor version bumps, but will need significant justification.
+
 ## License
 
 Licensed under either of
