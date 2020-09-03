@@ -1,5 +1,9 @@
 use std::num::NonZeroUsize;
 
+/// Contains a reference to a free slot in an arena, encapsulating NonZeroUsize
+/// to prevent off-by-one errors and leaking unsafety.
+///
+/// Uses NonZeroUsize to stay small when put inside an `Option`.
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub(crate) struct FreePointer(NonZeroUsize);

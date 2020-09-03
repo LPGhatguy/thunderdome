@@ -25,14 +25,38 @@ pub struct Index {
 
 #[derive(Debug, Clone)]
 enum Entry<T> {
-    Occupied {
-        generation: Generation,
-        value: T,
-    },
-    Empty {
-        generation: Generation,
-        next_free: Option<FreePointer>,
-    },
+    Occupied(OccupiedEntry<T>),
+    Empty(EmptyEntry),
+}
+
+impl<T> Entry<T> {
+    /// Consume the entry, and if it's occupied, return the value.
+    fn into_value(self) -> Option<T> {
+        match self {
+            Entry::Occupied(occupied) => Some(occupied.value),
+            Entry::Empty(_) => None,
+        }
+    }
+
+    /// If the entry is empty, return a copy of the emptiness data.
+    fn get_empty(&self) -> Option<EmptyEntry> {
+        match self {
+            Entry::Empty(empty) => Some(*empty),
+            Entry::Occupied(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct OccupiedEntry<T> {
+    generation: Generation,
+    value: T,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct EmptyEntry {
+    generation: Generation,
+    next_free: Option<FreePointer>,
 }
 
 impl<T> Arena<T> {
@@ -74,36 +98,43 @@ impl<T> Arena<T> {
     /// Insert a new value into the arena, returning an index that can be used
     /// to later retrieve the value.
     pub fn insert(&mut self, value: T) -> Index {
-        let index;
+        // This value will definitely be inserted, so we can update length now.
+        self.len += 1;
 
+        // If there was a previously free entry, we can re-use its slot as long
+        // as we increment its generation.
         if let Some(free_pointer) = self.first_free {
             let slot = free_pointer.slot();
+            let entry = self.storage.get_mut(slot).unwrap_or_else(|| {
+                unreachable!("first_free pointed past the end of the arena's storage")
+            });
 
-            let last_generation = match &mut self.storage[slot] {
-                Entry::Empty {
-                    generation,
-                    next_free,
-                } => {
-                    self.first_free = *next_free;
-                    generation
-                }
-                Entry::Occupied { .. } => unreachable!("first_free pointed to an occupied entry"),
-            };
+            let empty = entry
+                .get_empty()
+                .unwrap_or_else(|| unreachable!("first_free pointed to an occupied entry"));
 
-            let generation = last_generation.next();
+            // If there is another empty entry after this one, we'll update the
+            // arena to point to it to use it on the next insertion.
+            self.first_free = empty.next_free;
 
-            self.storage[slot] = Entry::Occupied { generation, value };
-            index = Index { slot, generation };
+            // Overwrite the entry directly using our mutable reference instead
+            // of indexing into our storage again. This should avoid an
+            // additional bounds check.
+            let generation = empty.generation.next();
+            *entry = Entry::Occupied(OccupiedEntry { generation, value });
+
+            Index { slot, generation }
         } else {
+            // There were no more empty entries left in our free list, so we'll
+            // create a new first-generation entry and push it into storage.
             let slot = self.storage.len();
             let generation = Generation::first();
 
-            self.storage.push(Entry::Occupied { generation, value });
-            index = Index { slot, generation };
-        }
+            self.storage
+                .push(Entry::Occupied(OccupiedEntry { generation, value }));
 
-        self.len += 1;
-        index
+            Index { slot, generation }
+        }
     }
 
     /// Get an immutable reference to a value inside the arena by
@@ -111,8 +142,8 @@ impl<T> Arena<T> {
     /// arena.
     pub fn get(&self, index: Index) -> Option<&T> {
         match self.storage.get(index.slot) {
-            Some(Entry::Occupied { generation, value }) if *generation == index.generation => {
-                Some(value)
+            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
+                Some(&occupied.value)
             }
             _ => None,
         }
@@ -122,8 +153,8 @@ impl<T> Arena<T> {
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
         match self.storage.get_mut(index.slot) {
-            Some(Entry::Occupied { generation, value }) if *generation == index.generation => {
-                Some(value)
+            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
+                Some(&mut occupied.value)
             }
             _ => None,
         }
@@ -135,20 +166,27 @@ impl<T> Arena<T> {
         let entry = self.storage.get_mut(index.slot)?;
 
         match entry {
-            Entry::Occupied { generation, .. } if *generation == index.generation => {
-                let next_entry = Entry::Empty {
-                    generation: generation.next(),
+            Entry::Occupied(occupied) if occupied.generation == index.generation => {
+                // We can replace an occupied entry with an empty entry with the
+                // same generation. On next insertion, this generation will
+                // increment.
+                let new_entry = Entry::Empty(EmptyEntry {
+                    generation: occupied.generation,
                     next_free: self.first_free,
-                };
+                });
 
-                let old_entry = replace(entry, next_entry);
-                let value = match old_entry {
-                    Entry::Occupied { value, .. } => value,
-                    _ => unreachable!(),
-                };
+                // Swap our new entry into our storage and take ownership of the
+                // old entry. We'll consume it for its value so we can give that
+                // back to our caller.
+                let old_entry = replace(entry, new_entry);
+                let value = old_entry.into_value().unwrap_or_else(|| unreachable!());
+
+                // The next time we insert, we can re-use the empty entry we
+                // just created. If another removal happens before then, that
+                // entry will be used before this one (FILO).
+                self.first_free = Some(FreePointer::from_slot(index.slot));
 
                 self.len -= 1;
-                self.first_free = Some(FreePointer::from_slot(index.slot));
 
                 Some(value)
             }
@@ -165,33 +203,40 @@ impl<T> Arena<T> {
     pub fn drain(&mut self) -> Drain<'_, T> {
         Drain {
             arena: self,
-            index: 0,
+            slot: 0,
         }
     }
 
+    /// This method is a lot like `remove`, but takes no generation. It's used
+    /// as part of `drain` and can likely be exposed as a public API eventually.
     fn remove_entry_by_slot(&mut self, slot: usize) -> Option<(Index, T)> {
         let entry = self.storage.get_mut(slot)?;
 
         match entry {
-            Entry::Occupied { generation, .. } => {
+            Entry::Occupied(occupied) => {
+                // Construct the index that would be used to access this entry.
                 let index = Index {
-                    generation: *generation,
+                    generation: occupied.generation,
                     slot,
                 };
 
-                let next_entry = Entry::Empty {
-                    generation: generation.next(),
+                // This occupied entry will be replaced with an empty one of the
+                // same generation. Generation will be incremented on the next
+                // insert.
+                let next_entry = Entry::Empty(EmptyEntry {
+                    generation: occupied.generation,
                     next_free: self.first_free,
-                };
+                });
 
+                // Swap new entry into place and consume the old one.
                 let old_entry = replace(entry, next_entry);
-                let value = match old_entry {
-                    Entry::Occupied { value, .. } => value,
-                    _ => unreachable!(),
-                };
+                let value = old_entry.into_value().unwrap_or_else(|| unreachable!());
+
+                // Set this entry as the next one that should be inserted into,
+                // should an insertion happen.
+                self.first_free = Some(FreePointer::from_slot(slot));
 
                 self.len -= 1;
-                self.first_free = Some(FreePointer::from_slot(slot));
 
                 Some((index, value))
             }
@@ -219,7 +264,7 @@ impl<T> ops::IndexMut<Index> for Arena<T> {
 /// See [`Arena::drain`][Arena::drain].
 pub struct Drain<'a, T> {
     arena: &'a mut Arena<T>,
-    index: usize,
+    slot: usize,
 }
 
 impl<'a, T> Iterator for Drain<'a, T> {
@@ -227,21 +272,34 @@ impl<'a, T> Iterator for Drain<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.index >= self.arena.storage.len() {
+            // If there are no entries remaining in the arena, we should always
+            // return None. Using this check instead of comparing with the
+            // arena's size allows us to skip any trailing empty entries.
+            if self.arena.is_empty() {
                 return None;
             }
 
-            let index = self.index;
-            self.index += 1;
+            let slot = self.slot;
 
-            if let Some((index, value)) = self.arena.remove_entry_by_slot(index) {
+            // It's unlikely that we'll overflow a usize, but in the event that
+            // we do, we should always panic. Rust will, by default, panic on
+            // overflow in debug, but silently wrap in release.
+            self.slot = self
+                .slot
+                .checked_add(1)
+                .unwrap_or_else(|| panic!("Overflowed usize trying to drain Arena"));
+
+            // If this entry is occupied, this method will mark it as an empty.
+            // Otherwise, we'll continue looping until we've drained all
+            // occupied entries from the arena.
+            if let Some((index, value)) = self.arena.remove_entry_by_slot(slot) {
                 return Some((index, value));
             }
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.arena.len, Some(self.arena.len))
+        (self.arena.len(), Some(self.arena.len()))
     }
 }
 
@@ -252,6 +310,7 @@ impl<'a, T> ExactSizeIterator for Drain<'a, T> {}
 mod test {
     use super::{Arena, Index};
 
+    use std::collections::HashSet;
     use std::mem::size_of;
 
     #[test]
@@ -263,14 +322,105 @@ mod test {
     #[test]
     fn new() {
         let arena: Arena<u32> = Arena::new();
-        assert_eq!(arena.storage.len(), 0);
-        assert_eq!(arena.storage.capacity(), 0);
+        assert_eq!(arena.len(), 0);
+        assert_eq!(arena.capacity(), 0);
     }
 
     #[test]
     fn with_capacity() {
         let arena: Arena<u32> = Arena::with_capacity(8);
-        assert_eq!(arena.storage.len(), 0);
-        assert_eq!(arena.storage.capacity(), 8);
+        assert_eq!(arena.len(), 0);
+        assert_eq!(arena.capacity(), 8);
+    }
+
+    #[test]
+    fn insert_and_get() {
+        let mut arena = Arena::new();
+
+        let one = arena.insert(1);
+        assert_eq!(arena.len(), 1);
+        assert_eq!(arena.get(one), Some(&1));
+
+        let two = arena.insert(2);
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.get(one), Some(&1));
+        assert_eq!(arena.get(two), Some(&2));
+    }
+
+    #[test]
+    fn insert_remove_get() {
+        let mut arena = Arena::new();
+        let one = arena.insert(1);
+
+        let two = arena.insert(2);
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.remove(two), Some(2));
+
+        let three = arena.insert(3);
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.get(one), Some(&1));
+        assert_eq!(arena.get(three), Some(&3));
+        assert_eq!(arena.get(two), None);
+    }
+
+    #[test]
+    fn get_mut() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(5);
+
+        let handle = arena.get_mut(foo).unwrap();
+        *handle = 6;
+
+        assert_eq!(arena.get(foo), Some(&6));
+    }
+
+    #[test]
+    fn insert_remove_insert_capacity() {
+        let mut arena = Arena::with_capacity(2);
+        assert_eq!(arena.capacity(), 2);
+
+        let a = arena.insert("a");
+        let b = arena.insert("b");
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.capacity(), 2);
+
+        arena.remove(a);
+        arena.remove(b);
+        assert_eq!(arena.len(), 0);
+        assert_eq!(arena.capacity(), 2);
+
+        let _a2 = arena.insert("a2");
+        let _b2 = arena.insert("b2");
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.capacity(), 2);
+    }
+
+    #[test]
+    fn drain() {
+        let mut arena = Arena::with_capacity(2);
+        let one = arena.insert(1);
+        let two = arena.insert(2);
+
+        let mut drained_pairs = HashSet::new();
+        for (index, value) in arena.drain() {
+            assert!(drained_pairs.insert((index, value)));
+        }
+
+        assert_eq!(arena.len(), 0);
+        assert_eq!(arena.capacity(), 2);
+        assert_eq!(drained_pairs.len(), 2);
+        assert!(drained_pairs.contains(&(one, 1)));
+        assert!(drained_pairs.contains(&(two, 2)));
+
+        // We should still be able to use the arena after this.
+        let one_prime = arena.insert(1);
+        let two_prime = arena.insert(2);
+
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.capacity(), 2);
+        assert_eq!(arena.get(one_prime), Some(&1));
+        assert_eq!(arena.get(two_prime), Some(&2));
+        assert_eq!(arena.get(one), None);
+        assert_eq!(arena.get(two), None);
     }
 }

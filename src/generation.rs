@@ -1,5 +1,11 @@
 use std::num::NonZeroU64;
 
+/// Tracks the generation of an entry in an arena. Encapsulates NonZeroU64 to
+/// reduce the number of redundant checks needed, as well as enforcing checked
+/// arithmetic on advancing a generation.
+///
+/// Uses NonZeroU64 to help `Index` stay the same size when put inside an
+/// `Option`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
 pub(crate) struct Generation(NonZeroU64);
