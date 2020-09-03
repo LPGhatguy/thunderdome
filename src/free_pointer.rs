@@ -10,7 +10,7 @@ impl FreePointer {
         let value = slot
             .checked_add(1)
             .expect("usize overflowed calculating free pointer from usize");
-        Self(unsafe { NonZeroUsize::new_unchecked(value) })
+        FreePointer(unsafe { NonZeroUsize::new_unchecked(value) })
     }
 
     #[must_use]
@@ -32,6 +32,6 @@ mod test {
     #[test]
     #[should_panic(expected = "usize overflowed calculating free pointer from usize")]
     fn panic_on_overflow() {
-        let _ = FreePointer::from_slot(usize::MAX);
+        let _ = FreePointer::from_slot(std::usize::MAX);
     }
 }

@@ -50,6 +50,12 @@ assert_eq!(arena.get(foo), None);
 1. slotmap's `SlotMap` and `HopSlotMap` require values to be `Copy` on stable
   Rust versions. slotmap's `DenseSlotMap` type supports non-`Copy` types on
   stable, but has different performance trade-offs.
+
+## Minimum Supported Rust Version (MSRV)
+
+Thunderdome supports Rust 1.31.0 and newer. Until Thunderdome reaches 1.0,
+changes to the MSRV will require major version bumps. After 1.0, MSRV changes
+will only require minor version bumps, but will need significant justification.
 */
 
 #![forbid(missing_docs)]
@@ -58,4 +64,4 @@ mod arena;
 mod free_pointer;
 mod generation;
 
-pub use arena::{Arena, Drain, Index};
+pub use crate::arena::{Arena, Drain, Index};

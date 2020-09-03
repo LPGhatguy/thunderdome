@@ -38,7 +38,7 @@ mod test {
     #[test]
     #[should_panic(expected = "u64 overflowed calculating next generation")]
     fn panic_on_overflow() {
-        let max = Generation(NonZeroU64::new(u64::MAX).unwrap());
+        let max = Generation(NonZeroU64::new(std::u64::MAX).unwrap());
         let _next = max.next();
     }
 }
