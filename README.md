@@ -46,6 +46,9 @@ assert_eq!(arena.get(foo), None);
 | Serde support                | No          | Yes                | Yes     | No   |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
+* See [the Thunderdome comparison
+  Cargo.toml](https://github.com/LPGhatguy/thunderdome/blob/main/comparison/Cargo.toml)
+  for versions of each library tested.
 
 1. slotmap's `SlotMap` and `HopSlotMap` require values to be `Copy` on stable
   Rust versions. slotmap's `DenseSlotMap` type supports non-`Copy` types on

@@ -1,5 +1,6 @@
 [package]
-name = "comparison"
+name = "thunderdome-comparison"
+description = "Compare properties of Thunderdome to related crates"
 publish = false
 version = "0.1.0"
 authors = ["Lucien Greathouse <me@lpghatguy.com>"]
