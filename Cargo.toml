@@ -9,7 +9,7 @@ homepage = "https://github.com/LPGhatguy/thunderdome"
 repository = "https://github.com/LPGhatguy/thunderdome"
 readme = "README.md"
 keywords = ["arena", "slab"]
-license = "MIT or Apache-2.0"
+license = "MIT OR Apache-2.0"
 
 [workspace]
 members = ["comparison"]
