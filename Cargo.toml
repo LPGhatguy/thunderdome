@@ -1,14 +1,14 @@
 [package]
 name = "thunderdome"
-description = "Arena allocator"
-version = "0.1.0"
+description = "Fast arena allocator with compact generational indices"
+version = "0.1.1"
 authors = ["Lucien Greathouse <me@lpghatguy.com>"]
 edition = "2018"
 documentation = "https://docs.rs/thunderdome"
 homepage = "https://github.com/LPGhatguy/thunderdome"
 repository = "https://github.com/LPGhatguy/thunderdome"
 readme = "README.md"
-keywords = ["arena", "slab"]
+keywords = ["arena", "slab", "generational"]
 license = "MIT OR Apache-2.0"
 
 [workspace]

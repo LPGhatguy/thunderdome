@@ -1,6 +1,8 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+
+## 0.1.1 (2020-09-02)
 * Added `Arena::with_capacity` for preallocating space.
 * Added `Arena::len`, `Arena::capacity`, and `Arena::is_empty`.
 * Improved panic-on-wrap guarantees, especially around unsafe code.
