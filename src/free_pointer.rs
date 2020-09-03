@@ -10,6 +10,9 @@ impl FreePointer {
         let value = slot
             .checked_add(1)
             .expect("usize overflowed calculating free pointer from usize");
+
+        // This is safe because any usize + 1 that didn't overflow must not be
+        // zero.
         FreePointer(unsafe { NonZeroUsize::new_unchecked(value) })
     }
 

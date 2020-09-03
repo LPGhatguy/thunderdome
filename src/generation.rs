@@ -16,6 +16,9 @@ impl Generation {
         let next_generation = last_generation
             .checked_add(1)
             .expect("u64 overflowed calculating next generation");
+
+        // This is safe because any u64 + 1 that didn't overflow must not be
+        // zero.
         Generation(unsafe { NonZeroU64::new_unchecked(next_generation) })
     }
 }
