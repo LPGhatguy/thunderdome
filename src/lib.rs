@@ -1,7 +1,11 @@
 /*!
-Generational arena type inspired by
-[generational-arena](https://crates.io/crates/generational-arena) and
-[slotmap](https://crates.io/crates/slotmap).
+Generational arena inspired by
+[generational-arena](https://crates.io/crates/generational-arena),
+[slotmap](https://crates.io/crates/slotmap), and
+[slab](https://crates.io/crates/slab).
+
+**Thunderdome should probably not (yet) be used in real projects. It is severely
+under-tested and contains a small amount of unsafe code.**
 
 ## Basic Examples
 
