@@ -1,0 +1,12 @@
+[package]
+name = "comparison"
+publish = false
+version = "0.1.0"
+authors = ["Lucien Greathouse <me@lpghatguy.com>"]
+edition = "2018"
+
+[dependencies]
+thunderdome = { path = ".." }
+generational-arena = "0.2.8"
+slotmap = "0.4.0"
+slab = "0.4.2"
