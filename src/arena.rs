@@ -1,12 +1,12 @@
 #![deny(clippy::integer_arithmetic)]
 
 use std::convert::TryInto;
-use std::iter::{ExactSizeIterator, FusedIterator};
 use std::mem::replace;
 use std::ops;
 
 use crate::free_pointer::FreePointer;
 use crate::generation::Generation;
+use crate::iterators::Drain;
 
 /// Container that can have elements inserted into it and removed from it.
 ///
@@ -210,15 +210,12 @@ impl<T> Arena<T> {
     /// If the iterator is dropped before it is fully consumed, any uniterated
     /// items will still be contained in the arena.
     pub fn drain(&mut self) -> Drain<'_, T> {
-        Drain {
-            arena: self,
-            slot: 0,
-        }
+        Drain::new(self)
     }
 
     /// This method is a lot like `remove`, but takes no generation. It's used
     /// as part of `drain` and can likely be exposed as a public API eventually.
-    fn remove_entry_by_slot(&mut self, slot: u32) -> Option<(Index, T)> {
+    pub(crate) fn remove_entry_by_slot(&mut self, slot: u32) -> Option<(Index, T)> {
         let entry = self.storage.get_mut(slot as usize)?;
 
         match entry {
@@ -276,56 +273,10 @@ impl<T> ops::IndexMut<Index> for Arena<T> {
     }
 }
 
-/// See [`Arena::drain`][Arena::drain].
-pub struct Drain<'a, T> {
-    arena: &'a mut Arena<T>,
-    slot: u32,
-}
-
-impl<'a, T> Iterator for Drain<'a, T> {
-    type Item = (Index, T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            // If there are no entries remaining in the arena, we should always
-            // return None. Using this check instead of comparing with the
-            // arena's size allows us to skip any trailing empty entries.
-            if self.arena.is_empty() {
-                return None;
-            }
-
-            let slot = self.slot;
-
-            // In the event that we overflow a u32, we should always panic. Rust
-            // will, by default, panic on overflow in debug, but silently wrap
-            // in release.
-            self.slot = self
-                .slot
-                .checked_add(1)
-                .unwrap_or_else(|| panic!("Overflowed u32 trying to drain Arena"));
-
-            // If this entry is occupied, this method will mark it as an empty.
-            // Otherwise, we'll continue looping until we've drained all
-            // occupied entries from the arena.
-            if let Some((index, value)) = self.arena.remove_entry_by_slot(slot) {
-                return Some((index, value));
-            }
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.arena.len(), Some(self.arena.len()))
-    }
-}
-
-impl<'a, T> FusedIterator for Drain<'a, T> {}
-impl<'a, T> ExactSizeIterator for Drain<'a, T> {}
-
 #[cfg(test)]
 mod test {
     use super::{Arena, Index};
 
-    use std::collections::HashSet;
     use std::mem::size_of;
 
     #[test]
@@ -408,34 +359,5 @@ mod test {
         let _b2 = arena.insert("b2");
         assert_eq!(arena.len(), 2);
         assert_eq!(arena.capacity(), 2);
-    }
-
-    #[test]
-    fn drain() {
-        let mut arena = Arena::with_capacity(2);
-        let one = arena.insert(1);
-        let two = arena.insert(2);
-
-        let mut drained_pairs = HashSet::new();
-        for (index, value) in arena.drain() {
-            assert!(drained_pairs.insert((index, value)));
-        }
-
-        assert_eq!(arena.len(), 0);
-        assert_eq!(arena.capacity(), 2);
-        assert_eq!(drained_pairs.len(), 2);
-        assert!(drained_pairs.contains(&(one, 1)));
-        assert!(drained_pairs.contains(&(two, 2)));
-
-        // We should still be able to use the arena after this.
-        let one_prime = arena.insert(1);
-        let two_prime = arena.insert(2);
-
-        assert_eq!(arena.len(), 2);
-        assert_eq!(arena.capacity(), 2);
-        assert_eq!(arena.get(one_prime), Some(&1));
-        assert_eq!(arena.get(two_prime), Some(&2));
-        assert_eq!(arena.get(one), None);
-        assert_eq!(arena.get(two), None);
     }
 }

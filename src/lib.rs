@@ -74,5 +74,7 @@ will only require minor version bumps, but will need significant justification.
 mod arena;
 mod free_pointer;
 mod generation;
+mod iterators;
 
-pub use crate::arena::{Arena, Drain, Index};
+pub use crate::arena::{Arena, Index};
+pub use crate::iterators::Drain;
