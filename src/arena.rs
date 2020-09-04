@@ -1,12 +1,13 @@
-#![deny(clippy::integer_arithmetic)]
-
 use std::convert::TryInto;
 use std::mem::replace;
 use std::ops;
 
+use crate::drain::Drain;
 use crate::free_pointer::FreePointer;
 use crate::generation::Generation;
-use crate::iterators::Drain;
+use crate::into_iter::IntoIter;
+use crate::iter::Iter;
+use crate::iter_mut::IterMut;
 
 /// Container that can have elements inserted into it and removed from it.
 ///
@@ -15,19 +16,19 @@ use crate::iterators::Drain;
 #[derive(Debug, Clone)]
 pub struct Arena<T> {
     storage: Vec<Entry<T>>,
-    len: usize,
+    len: u32,
     first_free: Option<FreePointer>,
 }
 
 /// Index type for [`Arena`][Arena] that has a generation attached to it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Index {
-    slot: u32,
-    generation: Generation,
+    pub(crate) slot: u32,
+    pub(crate) generation: Generation,
 }
 
 #[derive(Debug, Clone)]
-enum Entry<T> {
+pub(crate) enum Entry<T> {
     Occupied(OccupiedEntry<T>),
     Empty(EmptyEntry),
 }
@@ -51,15 +52,15 @@ impl<T> Entry<T> {
 }
 
 #[derive(Debug, Clone)]
-struct OccupiedEntry<T> {
-    generation: Generation,
-    value: T,
+pub(crate) struct OccupiedEntry<T> {
+    pub(crate) generation: Generation,
+    pub(crate) value: T,
 }
 
 #[derive(Debug, Clone, Copy)]
-struct EmptyEntry {
-    generation: Generation,
-    next_free: Option<FreePointer>,
+pub(crate) struct EmptyEntry {
+    pub(crate) generation: Generation,
+    pub(crate) next_free: Option<FreePointer>,
 }
 
 impl<T> Arena<T> {
@@ -84,7 +85,7 @@ impl<T> Arena<T> {
 
     /// Return the number of elements contained in the arena.
     pub fn len(&self) -> usize {
-        self.len
+        self.len as usize
     }
 
     /// Return the number of elements the arena can hold without allocating,
@@ -203,6 +204,27 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Iterate over all of the indexes and values contained in the arena.
+    ///
+    /// Iteration order is not defined.
+    pub fn iter(&self) -> Iter<'_, T> {
+        Iter {
+            inner: self.storage.iter().enumerate(),
+            len: self.len,
+        }
+    }
+
+    /// Iterate over all of the indexes and values contained in the arena, with
+    /// mutable access to each value.
+    ///
+    /// Iteration order is not defined.
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+        IterMut {
+            inner: self.storage.iter_mut().enumerate(),
+            len: self.len,
+        }
+    }
+
     /// Returns an iterator that removes each element from the arena.
     ///
     /// Iteration order is not defined.
@@ -210,9 +232,15 @@ impl<T> Arena<T> {
     /// If the iterator is dropped before it is fully consumed, any uniterated
     /// items will still be contained in the arena.
     pub fn drain(&mut self) -> Drain<'_, T> {
-        Drain::new(self)
+        Drain {
+            arena: self,
+            slot: 0,
+        }
     }
+}
 
+/// Methods exposed only within the crate.
+impl<T> Arena<T> {
     /// This method is a lot like `remove`, but takes no generation. It's used
     /// as part of `drain` and can likely be exposed as a public API eventually.
     pub(crate) fn remove_entry_by_slot(&mut self, slot: u32) -> Option<(Index, T)> {
@@ -254,6 +282,18 @@ impl<T> Arena<T> {
 impl<T> Default for Arena<T> {
     fn default() -> Self {
         Arena::new()
+    }
+}
+
+impl<T> IntoIterator for Arena<T> {
+    type Item = (Index, T);
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            arena: self,
+            slot: 0,
+        }
     }
 }
 

@@ -2,6 +2,8 @@
 
 ## Unreleased Changes
 * Added `Default` implementation for `Arena`.
+* Added `IntoIterator` implementation for `Arena` ([#1](https://github.com/LPGhatguy/thunderdome/issues/1))
+* Added `Arena::iter` and `Arena::iter_mut` ([#2](https://github.com/LPGhatguy/thunderdome/issues/2))
 
 ## 0.2.0 (2020-09-03)
 * Bumped MSRV to 1.34.1.

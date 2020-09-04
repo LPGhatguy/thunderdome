@@ -70,11 +70,21 @@ will only require minor version bumps, but will need significant justification.
 */
 
 #![forbid(missing_docs)]
+// This crate is sensitive to integer overflow and wrapping behavior. As such,
+// we should always use methods like `checked_add` and `checked_sub` instead
+// of the `Add` or `Sub` operators.
+#![deny(clippy::integer_arithmetic)]
 
 mod arena;
+mod drain;
 mod free_pointer;
 mod generation;
-mod iterators;
+mod into_iter;
+mod iter;
+mod iter_mut;
 
 pub use crate::arena::{Arena, Index};
-pub use crate::iterators::Drain;
+pub use crate::drain::Drain;
+pub use crate::into_iter::IntoIter;
+pub use crate::iter::Iter;
+pub use crate::iter_mut::IterMut;

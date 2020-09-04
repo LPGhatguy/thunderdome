@@ -4,14 +4,8 @@ use crate::arena::{Arena, Index};
 
 /// See [`Arena::drain`][Arena::drain].
 pub struct Drain<'a, T> {
-    arena: &'a mut Arena<T>,
-    slot: u32,
-}
-
-impl<'a, T> Drain<'a, T> {
-    pub(crate) fn new(arena: &'a mut Arena<T>) -> Self {
-        Drain { arena, slot: 0 }
-    }
+    pub(crate) arena: &'a mut Arena<T>,
+    pub(crate) slot: u32,
 }
 
 impl<'a, T> Iterator for Drain<'a, T> {
@@ -26,11 +20,10 @@ impl<'a, T> Iterator for Drain<'a, T> {
                 return None;
             }
 
+            // slot may overflow if the arena's underlying storage contains more
+            // than 2^32 elements, but its internal length value was not
+            // changed, as it overflowing would panic before reaching this code.
             let slot = self.slot;
-
-            // In the event that we overflow a u32, we should always panic. Rust
-            // will, by default, panic on overflow in debug, but silently wrap
-            // in release.
             self.slot = self
                 .slot
                 .checked_add(1)
@@ -66,9 +59,18 @@ mod test {
         let two = arena.insert(2);
 
         let mut drained_pairs = HashSet::new();
-        for (index, value) in arena.drain() {
-            assert!(drained_pairs.insert((index, value)));
-        }
+        let mut drain = arena.drain();
+        assert_eq!(drain.size_hint(), (2, Some(2)));
+
+        drained_pairs.insert(drain.next().unwrap());
+        assert_eq!(drain.size_hint(), (1, Some(1)));
+
+        drained_pairs.insert(drain.next().unwrap());
+        assert_eq!(drain.size_hint(), (0, Some(0)));
+
+        assert_eq!(drain.next(), None);
+        assert_eq!(drain.next(), None);
+        assert_eq!(drain.size_hint(), (0, Some(0)));
 
         assert_eq!(arena.len(), 0);
         assert_eq!(arena.capacity(), 2);
