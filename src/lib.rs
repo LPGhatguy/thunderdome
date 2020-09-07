@@ -71,7 +71,7 @@ will only require minor version bumps, but will need significant justification.
 
 #![forbid(missing_docs)]
 // This crate is sensitive to integer overflow and wrapping behavior. As such,
-// we should always use methods like `checked_add` and `checked_sub` instead
+// we should usually use methods like `checked_add` and `checked_sub` instead
 // of the `Add` or `Sub` operators.
 #![deny(clippy::integer_arithmetic)]
 
