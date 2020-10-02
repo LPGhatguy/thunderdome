@@ -204,6 +204,25 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Invalidate the given index and return a new index to the same value. This
+    /// is roughly equivalent to `remove` followed by `insert`, but much faster.
+    /// If the old index is already invalid, this method returns `None`.
+    pub fn invalidate(&mut self, index: Index) -> Option<Index> {
+        let entry = self.storage.get_mut(index.slot as usize)?;
+
+        match entry {
+            Entry::Occupied(occupied) if occupied.generation == index.generation => {
+                occupied.generation = occupied.generation.next();
+
+                Some(Index {
+                    generation: occupied.generation,
+                    ..index
+                })
+            }
+            _ => None,
+        }
+    }
+
     /// Iterate over all of the indexes and values contained in the arena.
     ///
     /// Iteration order is not defined.
@@ -399,5 +418,17 @@ mod test {
         let _b2 = arena.insert("b2");
         assert_eq!(arena.len(), 2);
         assert_eq!(arena.capacity(), 2);
+    }
+
+    #[test]
+    fn invalidate() {
+        let mut arena = Arena::new();
+
+        let a = arena.insert("a");
+        assert_eq!(arena.get(a), Some(&"a"));
+
+        let new_a = arena.invalidate(a).unwrap();
+        assert_eq!(arena.get(a), None);
+        assert_eq!(arena.get(new_a), Some(&"a"));
     }
 }
