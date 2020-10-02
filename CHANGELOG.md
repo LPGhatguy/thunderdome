@@ -1,6 +1,8 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+
+## 0.2.1 (2020-10-01)
 * Added `Default` implementation for `Arena`.
 * Added `IntoIterator` implementation for `Arena` ([#1](https://github.com/LPGhatguy/thunderdome/issues/1))
 * Added `Arena::iter` and `Arena::iter_mut` ([#2](https://github.com/LPGhatguy/thunderdome/issues/2))
