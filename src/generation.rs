@@ -25,6 +25,14 @@ impl Generation {
         // This is safe because value that would overflow is instead made 1.
         Generation(unsafe { NonZeroU32::new_unchecked(next_generation) })
     }
+
+    pub(crate) fn to_u32(self) -> u32 {
+        self.0.get()
+    }
+
+    pub(crate) fn from_u32(gen: u32) -> Self {
+        Generation(NonZeroU32::new(gen).expect("generation IDs must be nonzero!"))
+    }
 }
 
 #[cfg(test)]
