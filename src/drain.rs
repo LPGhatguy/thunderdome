@@ -1,5 +1,4 @@
 use std::iter::{ExactSizeIterator, FusedIterator};
-use std::mem::drop;
 
 use crate::arena::{Arena, Index};
 
