@@ -3,6 +3,7 @@
 ## Unreleased Changes
 * Added `Arena::invalidate` for invalidating indices on-demand, as a faster remove-followed-by-reinsert.
 * Added `Index::to_bits` and `Index::from_bits` for converting indices to a form convenient for passing outside of Rust.
+* Added `Arena::clear` for conveniently clearing the whole arena.
 
 ## 0.2.1 (2020-10-01)
 * Added `Default` implementation for `Arena`.

@@ -249,6 +249,11 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Clear the arena and drop all elements.
+    pub fn clear(&mut self) {
+        self.drain().for_each(drop);
+    }
+
     /// Iterate over all of the indexes and values contained in the arena.
     ///
     /// Iteration order is not defined.
