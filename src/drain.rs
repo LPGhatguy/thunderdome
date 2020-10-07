@@ -46,6 +46,13 @@ impl<'a, T> Iterator for Drain<'a, T> {
 impl<'a, T> FusedIterator for Drain<'a, T> {}
 impl<'a, T> ExactSizeIterator for Drain<'a, T> {}
 
+impl<'a, T> Drop for Drain<'a, T> {
+    // Continue iterating/dropping if there are any elements left.
+    fn drop(&mut self) {
+        self.for_each(drop);
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::Arena;
@@ -59,24 +66,21 @@ mod test {
         let two = arena.insert(2);
 
         let mut drained_pairs = HashSet::new();
-        let mut drain = arena.drain();
-        assert_eq!(drain.size_hint(), (2, Some(2)));
+        {
+            let mut drain = arena.drain();
+            assert_eq!(drain.size_hint(), (2, Some(2)));
 
-        drained_pairs.insert(drain.next().unwrap());
-        assert_eq!(drain.size_hint(), (1, Some(1)));
+            drained_pairs.insert(drain.next().unwrap());
+            assert_eq!(drain.size_hint(), (1, Some(1)));
 
-        drained_pairs.insert(drain.next().unwrap());
-        assert_eq!(drain.size_hint(), (0, Some(0)));
-
-        assert_eq!(drain.next(), None);
-        assert_eq!(drain.next(), None);
-        assert_eq!(drain.size_hint(), (0, Some(0)));
+            // Do not fully drain so we can ensure everything is dropped when the
+            // `Drain` is dropped.
+            assert_eq!(drain.size_hint(), (1, Some(1)));
+        }
 
         assert_eq!(arena.len(), 0);
         assert_eq!(arena.capacity(), 2);
-        assert_eq!(drained_pairs.len(), 2);
-        assert!(drained_pairs.contains(&(one, 1)));
-        assert!(drained_pairs.contains(&(two, 2)));
+        assert_eq!(drained_pairs.len(), 1);
 
         // We should still be able to use the arena after this.
         let one_prime = arena.insert(1);

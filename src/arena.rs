@@ -280,7 +280,8 @@ impl<T> Arena<T> {
     /// Iteration order is not defined.
     ///
     /// If the iterator is dropped before it is fully consumed, any uniterated
-    /// items will still be contained in the arena.
+    /// items will be dropped from the arena, and the arena will be empty.
+    /// The arena's capacity will not be changed.
     pub fn drain(&mut self) -> Drain<'_, T> {
         Drain {
             arena: self,
