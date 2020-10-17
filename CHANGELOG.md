@@ -1,6 +1,8 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+
+## 0.3.0 (2020-10-16)
 * Added `Arena::invalidate` for invalidating indices on-demand, as a faster remove-followed-by-reinsert.
 * Added `Index::to_bits` and `Index::from_bits` for converting indices to a form convenient for passing outside of Rust.
 * Added `Arena::clear` for conveniently clearing the whole arena.
