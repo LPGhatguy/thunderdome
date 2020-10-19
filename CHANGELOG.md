@@ -1,6 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Added `Arena::map` for converting an arena to another, with different value type, preserving indexing.
 
 ## 0.3.0 (2020-10-16)
 * Added `Arena::invalidate` for invalidating indices on-demand, as a faster remove-followed-by-reinsert.

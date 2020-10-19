@@ -288,6 +288,29 @@ impl<T> Arena<T> {
             slot: 0,
         }
     }
+
+    /// Returns an arena with identical indexing and function `f` applied to each value.
+    pub fn map<F, U>(mut self, mut f: F) -> Arena<U>
+    where
+        F: FnMut(T) -> U,
+    {
+        use Entry::*;
+        Arena {
+            storage: self
+                .storage
+                .drain(..)
+                .map(|entry| match entry {
+                    Occupied(OccupiedEntry { generation, value }) => Occupied(OccupiedEntry {
+                        generation,
+                        value: f(value),
+                    }),
+                    Empty(empty) => Empty(empty),
+                })
+                .collect(),
+            len: self.len,
+            first_free: self.first_free,
+        }
+    }
 }
 
 /// Methods exposed only within the crate.
