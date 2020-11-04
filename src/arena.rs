@@ -311,6 +311,9 @@ impl<T> Arena<T> {
                     // just created. If another removal happens before then, that
                     // entry will be used before this one (FILO).
                     self.first_free = Some(FreePointer::from_slot(index.slot));
+
+                    // We just verified that this entry is (was) occupied, so there's
+                    // trivially no way for this `checked_sub` to fail.
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
                 }
             }
