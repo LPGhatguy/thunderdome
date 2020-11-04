@@ -11,7 +11,7 @@ pub struct IterMut<'a, T> {
 }
 
 impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = (Index, &'a T);
+    type Item = (Index, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -76,7 +76,7 @@ mod test {
         assert_eq!(iter.next(), None);
         assert_eq!(iter.size_hint(), (0, Some(0)));
 
-        assert!(pairs.contains(&(one, &1)));
-        assert!(pairs.contains(&(two, &2)));
+        assert!(pairs.contains(&(one, &mut 1)));
+        assert!(pairs.contains(&(two, &mut 2)));
     }
 }

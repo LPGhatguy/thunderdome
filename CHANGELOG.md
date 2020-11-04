@@ -2,6 +2,7 @@
 
 ## Unreleased Changes
 * Added `Arena::retain` for conveniently removing entries which do not satisfy a given predicate.
+* Fix `Arena::iter_mut` to return mutable references.
 
 ## 0.3.0 (2020-10-16)
 * Added `Arena::invalidate` for invalidating indices on-demand, as a faster remove-followed-by-reinsert.
