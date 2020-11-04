@@ -173,6 +173,12 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Returns true if the given index is valid for the arena.
+    pub fn contains(&self, index: Index) -> bool {
+        matches!(self.storage.get(index.slot as usize),
+            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation)
+    }
+
     /// Get an immutable reference to a value inside the arena by
     /// [`Index`][Index], returning `None` if the index is not contained in the
     /// arena.
@@ -442,7 +448,9 @@ mod test {
 
         let two = arena.insert(2);
         assert_eq!(arena.len(), 2);
+        assert!(arena.contains(two));
         assert_eq!(arena.remove(two), Some(2));
+        assert!(!arena.contains(two));
 
         let three = arena.insert(3);
         assert_eq!(arena.len(), 2);
