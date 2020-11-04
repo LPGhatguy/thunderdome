@@ -288,6 +288,34 @@ impl<T> Arena<T> {
             slot: 0,
         }
     }
+
+    /// Remove all entries in the `Arena` which don't satisfy the provided predicate.
+    pub fn retain<F: FnMut(Index, &mut T) -> bool>(&mut self, mut f: F) {
+        for (i, entry) in self.storage.iter_mut().enumerate() {
+            if let Entry::Occupied(occupied) = entry {
+                let index = Index {
+                    slot: i as u32,
+                    generation: occupied.generation,
+                };
+
+                if !f(index, &mut occupied.value) {
+                    // We can replace an occupied entry with an empty entry with the
+                    // same generation. On next insertion, this generation will
+                    // increment.
+                    *entry = Entry::Empty(EmptyEntry {
+                        generation: occupied.generation,
+                        next_free: self.first_free,
+                    });
+
+                    // The next time we insert, we can re-use the empty entry we
+                    // just created. If another removal happens before then, that
+                    // entry will be used before this one (FILO).
+                    self.first_free = Some(FreePointer::from_slot(index.slot));
+                    self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
+                }
+            }
+        }
+    }
 }
 
 /// Methods exposed only within the crate.
@@ -462,6 +490,23 @@ mod test {
         let new_a = arena.invalidate(a).unwrap();
         assert_eq!(arena.get(a), None);
         assert_eq!(arena.get(new_a), Some(&"a"));
+    }
+
+    #[test]
+    fn retain() {
+        let mut arena = Arena::new();
+
+        for i in 0..100 {
+            arena.insert(i);
+        }
+
+        arena.retain(|_, &mut i| i % 2 == 1);
+
+        for (_, i) in arena.iter() {
+            assert_eq!(i % 2, 1);
+        }
+
+        assert_eq!(arena.len(), 50);
     }
 
     #[test]
