@@ -175,8 +175,10 @@ impl<T> Arena<T> {
 
     /// Returns true if the given index is valid for the arena.
     pub fn contains(&self, index: Index) -> bool {
-        matches!(self.storage.get(index.slot as usize),
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation)
+        match self.storage.get(index.slot as usize) {
+            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => true,
+            _ => false,
+        }
     }
 
     /// Get an immutable reference to a value inside the arena by
