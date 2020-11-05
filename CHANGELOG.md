@@ -1,6 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Added `Arena::contains` for checking whether an `Index` is valid for a given `Arena`.
 * Added `Arena::retain` for conveniently removing entries which do not satisfy a given predicate.
 * Fix `Arena::iter_mut` to return mutable references.
 
