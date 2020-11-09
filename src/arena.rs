@@ -187,7 +187,9 @@ impl<T> Arena<T> {
         }
     }
 
-    /// Returns true if the given index is valid for the arena.
+    /// Checks to see whether a slot is occupied in the arena, and if it is,
+    /// returns `Some` with the true `Index` of that slot (slot plus generation.)
+    /// Otherwise, returns `None`.
     pub fn contains_slot(&self, slot: u32) -> Option<Index> {
         match self.storage.get(slot as usize) {
             Some(Entry::Occupied(occupied)) => Some(Index {
