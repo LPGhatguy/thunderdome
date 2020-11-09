@@ -51,6 +51,12 @@ impl Index {
 
         Self { generation, slot }
     }
+
+    /// Convert this `Index` to its u32 slot index, discarding the `Generation`
+    /// info.
+    pub fn to_slot(self) -> u32 {
+        self.slot
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -257,6 +263,75 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Attempt to look up the given slot in the arena, disregarding any generational
+    /// information, and retrieve an immutable reference to it. Returns `None` if the
+    /// slot is empty.
+    pub fn get_by_slot(&self, slot: u32) -> Option<(Index, &T)> {
+        match self.storage.get(slot as usize) {
+            Some(Entry::Occupied(occupied)) => {
+                let index = Index {
+                    slot,
+                    generation: occupied.generation,
+                };
+                Some((index, &occupied.value))
+            }
+            _ => None,
+        }
+    }
+
+    /// Attempt to look up the given slot in the arena, disregarding any generational
+    /// information, and retrieve a mutable reference to it. Returns `None` if the
+    /// slot is empty.
+    pub fn get_by_slot_mut(&mut self, slot: u32) -> Option<(Index, &mut T)> {
+        match self.storage.get_mut(slot as usize) {
+            Some(Entry::Occupied(occupied)) => {
+                let index = Index {
+                    slot,
+                    generation: occupied.generation,
+                };
+                Some((index, &mut occupied.value))
+            }
+            _ => None,
+        }
+    }
+
+    /// Remove an entry in the arena by its slot, disregarding any generational info.
+    /// Returns `None` if the slot was already empty.
+    pub fn remove_by_slot(&mut self, slot: u32) -> Option<(Index, T)> {
+        let entry = self.storage.get_mut(slot as usize)?;
+
+        match entry {
+            Entry::Occupied(occupied) => {
+                // Construct the index that would be used to access this entry.
+                let index = Index {
+                    generation: occupied.generation,
+                    slot,
+                };
+
+                // This occupied entry will be replaced with an empty one of the
+                // same generation. Generation will be incremented on the next
+                // insert.
+                let next_entry = Entry::Empty(EmptyEntry {
+                    generation: occupied.generation,
+                    next_free: self.first_free,
+                });
+
+                // Swap new entry into place and consume the old one.
+                let old_entry = replace(entry, next_entry);
+                let value = old_entry.into_value().unwrap_or_else(|| unreachable!());
+
+                // Set this entry as the next one that should be inserted into,
+                // should an insertion happen.
+                self.first_free = Some(FreePointer::from_slot(slot));
+
+                self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
+
+                Some((index, value))
+            }
+            _ => None,
+        }
+    }
+
     /// Clear the arena and drop all elements.
     pub fn clear(&mut self) {
         self.drain().for_each(drop);
@@ -325,46 +400,6 @@ impl<T> Arena<T> {
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
                 }
             }
-        }
-    }
-}
-
-/// Methods exposed only within the crate.
-impl<T> Arena<T> {
-    /// This method is a lot like `remove`, but takes no generation. It's used
-    /// as part of `drain` and can likely be exposed as a public API eventually.
-    pub(crate) fn remove_entry_by_slot(&mut self, slot: u32) -> Option<(Index, T)> {
-        let entry = self.storage.get_mut(slot as usize)?;
-
-        match entry {
-            Entry::Occupied(occupied) => {
-                // Construct the index that would be used to access this entry.
-                let index = Index {
-                    generation: occupied.generation,
-                    slot,
-                };
-
-                // This occupied entry will be replaced with an empty one of the
-                // same generation. Generation will be incremented on the next
-                // insert.
-                let next_entry = Entry::Empty(EmptyEntry {
-                    generation: occupied.generation,
-                    next_free: self.first_free,
-                });
-
-                // Swap new entry into place and consume the old one.
-                let old_entry = replace(entry, next_entry);
-                let value = old_entry.into_value().unwrap_or_else(|| unreachable!());
-
-                // Set this entry as the next one that should be inserted into,
-                // should an insertion happen.
-                self.first_free = Some(FreePointer::from_slot(slot));
-
-                self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
-
-                Some((index, value))
-            }
-            _ => None,
         }
     }
 }
