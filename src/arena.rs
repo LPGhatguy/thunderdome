@@ -54,7 +54,7 @@ impl Index {
 
     /// Convert this `Index` to its u32 slot index, discarding the `Generation`
     /// info.
-    pub fn to_slot(self) -> u32 {
+    pub fn slot(self) -> u32 {
         self.slot
     }
 }
@@ -184,6 +184,17 @@ impl<T> Arena<T> {
         match self.storage.get(index.slot as usize) {
             Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => true,
             _ => false,
+        }
+    }
+
+    /// Returns true if the given index is valid for the arena.
+    pub fn contains_slot(&self, slot: u32) -> Option<Index> {
+        match self.storage.get(slot as usize) {
+            Some(Entry::Occupied(occupied)) => Some(Index {
+                slot,
+                generation: occupied.generation,
+            }),
+            _ => None,
         }
     }
 
@@ -494,6 +505,26 @@ mod test {
         assert_eq!(arena.get(one), Some(&1));
         assert_eq!(arena.get(three), Some(&3));
         assert_eq!(arena.get(two), None);
+    }
+
+    #[test]
+    fn insert_remove_get_by_slot() {
+        let mut arena = Arena::new();
+        let one = arena.insert(1);
+
+        let two = arena.insert(2);
+        assert_eq!(arena.len(), 2);
+        assert!(arena.contains(two));
+        assert_eq!(arena.remove_by_slot(two.slot()), Some((two, 2)));
+        assert!(!arena.contains(two));
+        assert_eq!(arena.get_by_slot(two.slot()), None);
+
+        let three = arena.insert(3);
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.get(one), Some(&1));
+        assert_eq!(arena.get(three), Some(&3));
+        assert_eq!(arena.get(two), None);
+        assert_eq!(arena.get_by_slot(two.slot()), Some((three, &3)));
     }
 
     #[test]
