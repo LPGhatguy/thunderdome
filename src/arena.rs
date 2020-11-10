@@ -52,8 +52,8 @@ impl Index {
         Self { generation, slot }
     }
 
-    /// Convert this `Index` to its u32 slot index, discarding the `Generation`
-    /// info.
+    /// Convert this `Index` into a slot, discarding its generation. Slots describe a
+    /// location in an [`Arena`] and are reused when entries are removed.
     pub fn slot(self) -> u32 {
         self.slot
     }
