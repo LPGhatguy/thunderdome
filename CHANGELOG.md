@@ -4,7 +4,7 @@
 * Added `Index::slot` for extracting the slot portion of an index.
 * Added `Arena::contains_slot` for checking whether a slot is occupied in a given `Arena` and resolving its `Index` if so.
 * Added `Arena::get_by_slot` and `Arena::get_by_slot_mut` for retrieving an entry by its slot, ignoring generation.
-* Renamed `Arena::remove_entry_by_slot` to `Arena::remove_by_slot`, making it public.
+* Added `Arena::remove_by_slot` for removing an entry by its slot, ignoring generation.
 * Added `Arena::contains` for checking whether an `Index` is valid for a given `Arena`.
 * Added `Arena::retain` for conveniently removing entries which do not satisfy a given predicate.
 * Fix `Arena::iter_mut` to return mutable references.
