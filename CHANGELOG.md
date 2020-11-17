@@ -1,6 +1,8 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+
+## 0.4.0 (2020-11-17)
 * Added `Index::slot` for extracting the slot portion of an index.
 * Added `Arena::contains_slot` for checking whether a slot is occupied in a given `Arena` and resolving its `Index` if so.
 * Added `Arena::get_by_slot` and `Arena::get_by_slot_mut` for retrieving an entry by its slot, ignoring generation.
