@@ -4,7 +4,7 @@ use std::slice;
 
 use crate::arena::{Entry, Index};
 
-/// See [`Arena::iter_mut`][Arena::iter_mut].
+/// See [`Arena::iter_mut`](crate::Arena::iter_mut).
 pub struct IterMut<'a, T> {
     pub(crate) len: u32,
     pub(crate) inner: Enumerate<slice::IterMut<'a, Entry<T>>>,

@@ -11,8 +11,7 @@ use crate::iter_mut::IterMut;
 
 /// Container that can have elements inserted into it and removed from it.
 ///
-/// Indices use the [`Index`][Index] type, created by inserting values with
-/// [`Arena::insert`][Arena::insert].
+/// Indices use the [`Index`] type, created by inserting values with [`Arena::insert`].
 #[derive(Debug, Clone)]
 pub struct Arena<T> {
     storage: Vec<Entry<T>>,
@@ -20,7 +19,7 @@ pub struct Arena<T> {
     first_free: Option<FreePointer>,
 }
 
-/// Index type for [`Arena`][Arena] that has a generation attached to it.
+/// Index type for [`Arena`] that has a generation attached to it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Index {
     pub(crate) slot: u32,
@@ -201,8 +200,7 @@ impl<T> Arena<T> {
     }
 
     /// Get an immutable reference to a value inside the arena by
-    /// [`Index`][Index], returning `None` if the index is not contained in the
-    /// arena.
+    /// [`Index`], returning `None` if the index is not contained in the arena.
     pub fn get(&self, index: Index) -> Option<&T> {
         match self.storage.get(index.slot as usize) {
             Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
@@ -212,7 +210,7 @@ impl<T> Arena<T> {
         }
     }
 
-    /// Get a mutable reference to a value inside the arena by [`Index`][Index],
+    /// Get a mutable reference to a value inside the arena by [`Index`],
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
         match self.storage.get_mut(index.slot as usize) {

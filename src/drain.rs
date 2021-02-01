@@ -2,7 +2,7 @@ use std::iter::{ExactSizeIterator, FusedIterator};
 
 use crate::arena::{Arena, Index};
 
-/// See [`Arena::drain`][Arena::drain].
+/// See [`Arena::drain`].
 pub struct Drain<'a, T> {
     pub(crate) arena: &'a mut Arena<T>,
     pub(crate) slot: u32,
