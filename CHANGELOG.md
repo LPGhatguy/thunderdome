@@ -1,6 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Implemented `IntoIterator` for `&Arena` and `&mut Arena`.
 
 ## 0.4.0 (2020-11-17)
 * Added `Index::slot` for extracting the slot portion of an index.
