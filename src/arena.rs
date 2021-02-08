@@ -221,6 +221,87 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Get mutable references to two values inside this arena at once by
+    /// [`Index`], returning `None` if the corresponding index is not contained
+    /// in this arena.
+    ///
+    /// # Panics
+    ///
+    /// This method panics when the two indices are equal.
+    pub fn get2_mut(&mut self, index1: Index, index2: Index) -> (Option<&mut T>, Option<&mut T>) {
+        if index1 == index2 {
+            panic!("Arena::get2_mut is called with two identical indices");
+        }
+
+        if index1.slot == index2.slot {
+            // The two indices are of the same slot. Since they are not equal,
+            // only one index may be valid.
+
+            // Get the mutable reference and compare the generations:
+            if let Some((real_index, reference)) = self.get_by_slot_mut(index1.slot) {
+                if real_index.generation == index1.generation {
+                    (Some(reference), None)
+                } else if real_index.generation == index2.generation {
+                    (None, Some(reference))
+                } else {
+                    (None, None)
+                }
+            } else {
+                // This slot is empty
+                (None, None)
+            }
+        } else {
+            // The two indices are of different slots.
+
+            // Swap values to ensure that index1.slot < index2.slot
+            // This implies that:
+            //   0 <= index1.slot <  u32::max_value()
+            //   0 <  index2.slot <= u32::max_value()
+            let (index1, index2, swapped) = if index1.slot > index2.slot {
+                (index2, index1, true)
+            } else {
+                (index1, index2, false)
+            };
+
+            // Ensure that index1 is inside storage capacity
+            if index1.slot as usize >= self.storage.len() {
+                return (None, None);
+            }
+
+            // This function call makes self[index1] the last value of i1,
+            // and self[index2] the (index2.slot - index1.slot - 1)th value of i2.
+            let (i1, i2) = self
+                .storage
+                .split_at_mut((index1.slot as usize).wrapping_add(1));
+
+            // i1.len() = (index1.slot + 1) >= 1
+            let value1 = i1.last_mut().unwrap();
+            let value1 = match value1 {
+                Entry::Occupied(entry) if entry.generation == index1.generation => {
+                    Some(&mut entry.value)
+                }
+                _ => None,
+            };
+
+            // Since index2.slot > index1.slot, (index2.slot - index1.slot) >= 1
+            // Thus this calculation would not overflow.
+            let value2_slot = index2.slot.wrapping_sub(index1.slot).wrapping_sub(1);
+            let value2 = i2.get_mut(value2_slot as usize);
+            let value2 = match value2 {
+                Some(Entry::Occupied(entry)) if entry.generation == index1.generation => {
+                    Some(&mut entry.value)
+                }
+                _ => None,
+            };
+
+            if swapped {
+                (value2, value1)
+            } else {
+                (value1, value2)
+            }
+        }
+    }
+
     /// Remove the value contained at the given index from the arena, returning
     /// it if it was present.
     pub fn remove(&mut self, index: Index) -> Option<T> {
