@@ -638,6 +638,62 @@ mod test {
     }
 
     #[test]
+    fn get2_mut() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let bar = arena.insert(500);
+
+        let (foo_handle, bar_handle) = arena.get2_mut(foo, bar);
+        let foo_handle = foo_handle.unwrap();
+        let bar_handle = bar_handle.unwrap();
+        *foo_handle = 105;
+        *bar_handle = 505;
+
+        assert_eq!(arena.get(foo), Some(&105));
+        assert_eq!(arena.get(bar), Some(&505));
+    }
+
+    #[test]
+    fn get2_mut_reversed_order() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let bar = arena.insert(500);
+
+        let (bar_handle, foo_handle) = arena.get2_mut(bar, foo);
+        let foo_handle = foo_handle.unwrap();
+        let bar_handle = bar_handle.unwrap();
+        *foo_handle = 105;
+        *bar_handle = 505;
+
+        assert_eq!(arena.get(foo), Some(&105));
+        assert_eq!(arena.get(bar), Some(&505));
+    }
+
+    #[test]
+    fn get2_mut_non_exist_handle() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let bar = arena.insert(500);
+        arena.remove(bar);
+
+        let (bar_handle, foo_handle) = arena.get2_mut(bar, foo);
+        let foo_handle = foo_handle.unwrap();
+        assert!(bar_handle.is_none());
+        *foo_handle = 105;
+
+        assert_eq!(arena.get(foo), Some(&105));
+    }
+
+    #[test]
+    #[should_panic]
+    fn get2_mut_panics() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+
+        arena.get2_mut(foo, foo);
+    }
+
+    #[test]
     fn insert_remove_insert_capacity() {
         let mut arena = Arena::with_capacity(2);
         assert_eq!(arena.capacity(), 2);
