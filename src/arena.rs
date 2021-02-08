@@ -685,6 +685,18 @@ mod test {
     }
 
     #[test]
+    fn get2_mut_same_slot_different_generation() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let mut foo1 = foo;
+        foo1.generation = foo1.generation.next();
+
+        let (foo_handle, foo1_handle) = arena.get2_mut(foo, foo1);
+        assert!(foo_handle.is_some());
+        assert!(foo1_handle.is_none());
+    }
+
+    #[test]
     #[should_panic]
     fn get2_mut_panics() {
         let mut arena = Arena::new();
