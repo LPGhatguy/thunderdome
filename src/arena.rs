@@ -227,79 +227,32 @@ impl<T> Arena<T> {
     ///
     /// # Panics
     ///
-    /// This method panics when the two indices are equal.
+    /// This function panics when the two indices are equal (having the same
+    /// slot number and generation).
     pub fn get2_mut(&mut self, index1: Index, index2: Index) -> (Option<&mut T>, Option<&mut T>) {
         if index1 == index2 {
             panic!("Arena::get2_mut is called with two identical indices");
         }
 
-        if index1.slot == index2.slot {
-            // The two indices are of the same slot. Since they are not equal,
-            // only one index may be valid.
+        // Unsafe notes:
+        // - If `index1` and `index2` have different slot number, `item1` and
+        //   `item2` would point to different elements.
+        // - If `index1` and `index2` have the same slot number, only one could
+        //   be valid because there is only one valid generation number.
+        // - If `index1` and `index2` have the same slot number and the same
+        //   generation, this function will panic.
+        //
+        // Since `Vec::get_mut` will not reallocate, we can safely cast
+        // a mutable reference to an element to a pointer and back and remain
+        // valid.
 
-            // Get the mutable reference and compare the generations:
-            if let Some((real_index, reference)) = self.get_by_slot_mut(index1.slot) {
-                if real_index.generation == index1.generation {
-                    (Some(reference), None)
-                } else if real_index.generation == index2.generation {
-                    (None, Some(reference))
-                } else {
-                    (None, None)
-                }
-            } else {
-                // This slot is empty
-                (None, None)
-            }
-        } else {
-            // The two indices are of different slots.
+        let item1 = self.get_mut(index1);
+        let item1_bypass_borrow_checker = item1.map(|x| x as *mut T);
 
-            // Swap values to ensure that index1.slot < index2.slot
-            // This implies that:
-            //   0 <= index1.slot <  u32::max_value()
-            //   0 <  index2.slot <= u32::max_value()
-            let (index1, index2, swapped) = if index1.slot > index2.slot {
-                (index2, index1, true)
-            } else {
-                (index1, index2, false)
-            };
+        let item2 = self.get_mut(index2);
+        let item1 = unsafe { item1_bypass_borrow_checker.map(|x| x.as_mut().unwrap()) };
 
-            // Ensure that index1 is inside storage capacity
-            if index1.slot as usize >= self.storage.len() {
-                return (None, None);
-            }
-
-            // This function call makes self[index1] the last value of i1,
-            // and self[index2] the (index2.slot - index1.slot - 1)th value of i2.
-            let (i1, i2) = self
-                .storage
-                .split_at_mut((index1.slot as usize).wrapping_add(1));
-
-            // i1.len() = (index1.slot + 1) >= 1
-            let value1 = i1.last_mut().unwrap();
-            let value1 = match value1 {
-                Entry::Occupied(entry) if entry.generation == index1.generation => {
-                    Some(&mut entry.value)
-                }
-                _ => None,
-            };
-
-            // Since index2.slot > index1.slot, (index2.slot - index1.slot) >= 1
-            // Thus this calculation would not overflow.
-            let value2_slot = index2.slot.wrapping_sub(index1.slot).wrapping_sub(1);
-            let value2 = i2.get_mut(value2_slot as usize);
-            let value2 = match value2 {
-                Some(Entry::Occupied(entry)) if entry.generation == index1.generation => {
-                    Some(&mut entry.value)
-                }
-                _ => None,
-            };
-
-            if swapped {
-                (value2, value1)
-            } else {
-                (value1, value2)
-            }
-        }
+        (item1, item2)
     }
 
     /// Remove the value contained at the given index from the arena, returning
