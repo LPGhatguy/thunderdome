@@ -221,6 +221,41 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Get mutable references of two values inside this arena at once by
+    /// [`Index`], returning `None` if the corresponding `index` is not
+    /// contained in this arena.
+    ///
+    /// # Panics
+    ///
+    /// This function panics when the two indices are equal (having the same
+    /// slot number and generation).
+    pub fn get2_mut(&mut self, index1: Index, index2: Index) -> (Option<&mut T>, Option<&mut T>) {
+        if index1 == index2 {
+            panic!("Arena::get2_mut is called with two identical indices");
+        }
+
+        // SAFETY NOTES:
+        //
+        // - If `index1` and `index2` have different slot number, `item1` and
+        //   `item2` would point to different elements.
+        // - If `index1` and `index2` have the same slot number, only one could
+        //   be valid because there is only one valid generation number.
+        // - If `index1` and `index2` have the same slot number and the same
+        //   generation, this function will panic.
+        //
+        // Since `Vec::get_mut` will not reallocate, we can safely cast
+        // a mutable reference to an element to a pointer and back and remain
+        // valid.
+
+        // Hold the first value in a pointer to sidestep the borrow checker
+        let item1_ptr = self.get_mut(index1).map(|x| x as *mut T);
+
+        let item2 = self.get_mut(index2);
+        let item1 = unsafe { item1_ptr.map(|x| &mut *x) };
+
+        (item1, item2)
+    }
+
     /// Remove the value contained at the given index from the arena, returning
     /// it if it was present.
     pub fn remove(&mut self, index: Index) -> Option<T> {
@@ -554,6 +589,74 @@ mod test {
         *handle = 6;
 
         assert_eq!(arena.get(foo), Some(&6));
+    }
+
+    #[test]
+    fn get2_mut() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let bar = arena.insert(500);
+
+        let (foo_handle, bar_handle) = arena.get2_mut(foo, bar);
+        let foo_handle = foo_handle.unwrap();
+        let bar_handle = bar_handle.unwrap();
+        *foo_handle = 105;
+        *bar_handle = 505;
+
+        assert_eq!(arena.get(foo), Some(&105));
+        assert_eq!(arena.get(bar), Some(&505));
+    }
+
+    #[test]
+    fn get2_mut_reversed_order() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let bar = arena.insert(500);
+
+        let (bar_handle, foo_handle) = arena.get2_mut(bar, foo);
+        let foo_handle = foo_handle.unwrap();
+        let bar_handle = bar_handle.unwrap();
+        *foo_handle = 105;
+        *bar_handle = 505;
+
+        assert_eq!(arena.get(foo), Some(&105));
+        assert_eq!(arena.get(bar), Some(&505));
+    }
+
+    #[test]
+    fn get2_mut_non_exist_handle() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let bar = arena.insert(500);
+        arena.remove(bar);
+
+        let (bar_handle, foo_handle) = arena.get2_mut(bar, foo);
+        let foo_handle = foo_handle.unwrap();
+        assert!(bar_handle.is_none());
+        *foo_handle = 105;
+
+        assert_eq!(arena.get(foo), Some(&105));
+    }
+
+    #[test]
+    fn get2_mut_same_slot_different_generation() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+        let mut foo1 = foo;
+        foo1.generation = foo1.generation.next();
+
+        let (foo_handle, foo1_handle) = arena.get2_mut(foo, foo1);
+        assert!(foo_handle.is_some());
+        assert!(foo1_handle.is_none());
+    }
+
+    #[test]
+    #[should_panic]
+    fn get2_mut_panics() {
+        let mut arena = Arena::new();
+        let foo = arena.insert(100);
+
+        arena.get2_mut(foo, foo);
     }
 
     #[test]
