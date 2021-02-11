@@ -2,6 +2,7 @@
 
 ## Unreleased Changes
 * Implemented `IntoIterator` for `&Arena` and `&mut Arena`.
+* Added `Arena::get2_mut` for getting two mutable references of different slots at once.
 
 ## 0.4.0 (2020-11-17)
 * Added `Index::slot` for extracting the slot portion of an index.

@@ -221,9 +221,9 @@ impl<T> Arena<T> {
         }
     }
 
-    /// Get mutable references to two values inside this arena at once by
-    /// [`Index`], returning `None` if the corresponding index is not contained
-    /// in this arena.
+    /// Get mutable references of two values inside this arena at once by
+    /// [`Index`], returning `None` if the corresponding `index` is not
+    /// contained in this arena.
     ///
     /// # Panics
     ///
@@ -234,7 +234,8 @@ impl<T> Arena<T> {
             panic!("Arena::get2_mut is called with two identical indices");
         }
 
-        // Unsafe notes:
+        // SAFETY NOTES:
+        //
         // - If `index1` and `index2` have different slot number, `item1` and
         //   `item2` would point to different elements.
         // - If `index1` and `index2` have the same slot number, only one could
