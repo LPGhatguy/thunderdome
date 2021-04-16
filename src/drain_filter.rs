@@ -14,7 +14,7 @@ impl<'a, T, F: FnMut(&mut T) -> bool> Iterator for DrainFilter<'a, T, F> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.slot as usize > self.arena.len() {
+            if self.slot as usize >= self.arena.len_storage() {
                 return None;
             }
 
