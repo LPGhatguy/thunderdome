@@ -49,7 +49,7 @@ impl Index {
         let generation = Generation::from_u32((bits >> 32) as u32);
         let slot = bits as u32;
 
-        Self { generation, slot }
+        Self { slot, generation }
     }
 
     /// Convert this `Index` into a slot, discarding its generation. Slots describe a
@@ -188,10 +188,7 @@ impl<T> Arena<T> {
 
     /// Returns true if the given index is valid for the arena.
     pub fn contains(&self, index: Index) -> bool {
-        match self.storage.get(index.slot as usize) {
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => true,
-            _ => false,
-        }
+        matches!(self.storage.get(index.slot as usize), Some(Entry::Occupied(occupied)) if occupied.generation == index.generation )
     }
 
     /// Checks to see whether a slot is occupied in the arena, and if it is,
