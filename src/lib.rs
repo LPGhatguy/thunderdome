@@ -74,6 +74,7 @@ will only require minor version bumps, but will need significant justification.
 
 mod arena;
 mod drain;
+mod drain_filter;
 mod free_pointer;
 mod generation;
 mod into_iter;
@@ -82,6 +83,7 @@ mod iter_mut;
 
 pub use crate::arena::{Arena, Index};
 pub use crate::drain::Drain;
+pub use crate::drain_filter::DrainFilter;
 pub use crate::into_iter::IntoIter;
 pub use crate::iter::Iter;
 pub use crate::iter_mut::IterMut;
