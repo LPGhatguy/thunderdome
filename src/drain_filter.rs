@@ -74,10 +74,6 @@ mod test {
 
             drained_pairs.insert(drain_filter.next().unwrap());
             assert_eq!(drain_filter.size_hint(), (0, Some(1)));
-
-            // Do not fully drain so we can ensure everything is dropped when the
-            // `DrainFilter` is dropped.
-            assert_eq!(drain_filter.size_hint(), (0, Some(1)));
         }
 
         assert_eq!(arena.len(), 1);
