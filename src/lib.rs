@@ -72,16 +72,32 @@ will only require minor version bumps, but will need significant justification.
 // of the `Add` or `Sub` operators.
 #![deny(clippy::integer_arithmetic)]
 
+#[cfg(not(feature = "typed-index"))]
+macro_rules! IndexT {
+    ($t:ty) => {
+        crate::index::Index
+    };
+}
+
+#[cfg(feature = "typed-index")]
+macro_rules! IndexT {
+    ($t:ty) => {
+        crate::index::Index<$t>
+    };
+}
+
 mod arena;
 mod drain;
 mod free_pointer;
 mod generation;
+mod index;
 mod into_iter;
 mod iter;
 mod iter_mut;
 
-pub use crate::arena::{Arena, Index};
+pub use crate::arena::Arena;
 pub use crate::drain::Drain;
+pub use crate::index::Index;
 pub use crate::into_iter::IntoIter;
 pub use crate::iter::Iter;
 pub use crate::iter_mut::IterMut;

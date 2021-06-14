@@ -1,6 +1,6 @@
 use std::iter::{ExactSizeIterator, FusedIterator};
 
-use crate::arena::{Arena, Index};
+use crate::arena::Arena;
 
 /// See [`Arena::drain`].
 pub struct Drain<'a, T> {
@@ -9,7 +9,7 @@ pub struct Drain<'a, T> {
 }
 
 impl<'a, T> Iterator for Drain<'a, T> {
-    type Item = (Index, T);
+    type Item = (IndexT!(T), T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

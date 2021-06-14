@@ -11,5 +11,8 @@ readme = "README.md"
 keywords = ["arena", "slab", "generational"]
 license = "MIT OR Apache-2.0"
 
+[features]
+typed-index = []
+
 [workspace]
 members = ["comparison"]

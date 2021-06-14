@@ -1,6 +1,6 @@
 use std::iter::{ExactSizeIterator, FusedIterator};
 
-use crate::arena::{Arena, Index};
+use crate::arena::Arena;
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
 pub struct IntoIter<T> {
@@ -9,7 +9,8 @@ pub struct IntoIter<T> {
 }
 
 impl<T> Iterator for IntoIter<T> {
-    type Item = (Index, T);
+    // type Item = (<Arena<T> as IndexType>::Index, T);
+    type Item = (IndexT!(T), T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

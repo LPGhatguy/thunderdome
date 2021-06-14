@@ -2,7 +2,8 @@ use std::convert::TryInto;
 use std::iter::{Enumerate, ExactSizeIterator, FusedIterator};
 use std::slice;
 
-use crate::arena::{Entry, Index};
+use crate::arena::Entry;
+use crate::index::create_index;
 
 /// See [`Arena::iter`](crate::Arena::iter).
 pub struct Iter<'a, T> {
@@ -11,7 +12,7 @@ pub struct Iter<'a, T> {
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = (Index, &'a T);
+    type Item = (IndexT!(T), &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -31,10 +32,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
                         .try_into()
                         .unwrap_or_else(|_| unreachable!("Overflowed u32 trying to iterate Arena"));
 
-                    let index = Index {
-                        slot,
-                        generation: occupied.generation,
-                    };
+                    let index = create_index(slot, occupied.generation);
 
                     return Some((index, &occupied.value));
                 }
