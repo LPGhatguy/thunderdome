@@ -247,11 +247,11 @@ impl<T> Arena<T> {
         // a mutable reference to an element to a pointer and back and remain
         // valid.
 
-        // Hold the first value in a pointer to sidestep the borrow checker
         let item1_ptr = self.get_mut(index1).map(|x| x as *mut T);
+        let item2_ptr = self.get_mut(index2).map(|x| x as *mut T);
 
-        let item2 = self.get_mut(index2);
         let item1 = unsafe { item1_ptr.map(|x| &mut *x) };
+        let item2 = unsafe { item2_ptr.map(|x| &mut *x) };
 
         (item1, item2)
     }
