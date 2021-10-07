@@ -1,6 +1,9 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Moved iterator types into `thunderdome::iter`. ([#24])
+
+[#24]: https://github.com/LPGhatguy/thunderdome/issues/24
 
 ## [0.4.2][0.4.2] (2021-10-07)
 * Fixed miri warning for `Arena::get2_mut`. ([#29][pr-29])

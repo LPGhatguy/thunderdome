@@ -73,15 +73,8 @@ will only require minor version bumps, but will need significant justification.
 #![deny(clippy::integer_arithmetic)]
 
 mod arena;
-mod drain;
 mod free_pointer;
 mod generation;
-mod into_iter;
-mod iter;
-mod iter_mut;
+pub mod iter;
 
 pub use crate::arena::{Arena, Index};
-pub use crate::drain::Drain;
-pub use crate::into_iter::IntoIter;
-pub use crate::iter::Iter;
-pub use crate::iter_mut::IterMut;
