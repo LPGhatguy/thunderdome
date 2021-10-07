@@ -1,7 +1,7 @@
 [package]
 name = "thunderdome"
 description = "Fast arena allocator with compact generational indices"
-version = "0.4.2"
+version = "0.5.0"
 authors = ["Lucien Greathouse <me@lpghatguy.com>"]
 edition = "2018"
 documentation = "https://docs.rs/thunderdome"

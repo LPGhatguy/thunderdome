@@ -1,11 +1,14 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+
+## [0.5.0] - 2021-10-07
 * Moved iterator types into `thunderdome::iter`. ([#24])
 * Changed `Index::from_bits` to return `Option<Index>` instead of `Index`, and no longer panic. ([#31])
 
 [#24]: https://github.com/LPGhatguy/thunderdome/issues/24
 [#31]: https://github.com/LPGhatguy/thunderdome/issues/31
+[0.5.0]: https://github.com/LPGhatguy/thunderdome/releases/tag/v0.5.0
 
 ## [0.4.2] - 2021-10-07
 * Fixed miri warning for `Arena::get2_mut`. ([#29])
