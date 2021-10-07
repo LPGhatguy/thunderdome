@@ -30,8 +30,8 @@ impl Generation {
         self.0.get()
     }
 
-    pub(crate) fn from_u32(gen: u32) -> Self {
-        Generation(NonZeroU32::new(gen).expect("generation IDs must be nonzero!"))
+    pub(crate) fn from_u32(gen: u32) -> Option<Self> {
+        NonZeroU32::new(gen).map(Generation)
     }
 }
 
