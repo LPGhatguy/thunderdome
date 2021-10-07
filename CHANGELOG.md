@@ -2,6 +2,14 @@
 
 ## Unreleased Changes
 
+## [0.4.2][0.4.2] (2021-10-07)
+* Fixed miri warning for `Arena::get2_mut`. ([#29][pr-29])
+* Added `Arena::insert_at` and `Arena::insert_at_slot` for inserting into specific indexes or slots. ([#30][pr-30])
+
+[pr-29]: https://github.com/LPGhatguy/thunderdome/pull/29
+[pr-30]: https://github.com/LPGhatguy/thunderdome/pull/30 
+[0.4.2]: https://github.com/LPGhatguy/thunderdome/releases/tag/v0.4.2
+
 ## [0.4.1][0.4.1] (2021-02-24)
 * Implemented `IntoIterator` for `&Arena` and `&mut Arena`. ([#18][issue-18])
 * Added `Arena::get2_mut` for getting two mutable references of different slots at once. ([#22][issue-22])

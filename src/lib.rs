@@ -3,7 +3,7 @@
 [![thunderdome on crates.io](https://img.shields.io/crates/v/thunderdome.svg)](https://crates.io/crates/thunderdome)
 [![thunderdome docs](https://img.shields.io/badge/docs-docs.rs-orange.svg)](https://docs.rs/thunderdome)
 
-Thunderdome is a ~gladitorial~ generational arena inspired by
+Thunderdome is a ~~gladitorial~~ generational arena inspired by
 [generational-arena](https://crates.io/crates/generational-arena),
 [slotmap](https://crates.io/crates/slotmap), and
 [slab](https://crates.io/crates/slab). It provides constant time insertion,
