@@ -728,6 +728,20 @@ mod test {
     }
 
     #[test]
+    fn insert_at_first_slot() {
+        let mut arena = Arena::new();
+        // Numbers definitely not chosen by fair dice roll
+        let index = Index {
+            slot: 0,
+            generation: Generation::from_u32(3),
+        };
+        arena.insert_at(index, 5);
+        assert_eq!(arena.len(), 1);
+        assert_eq!(arena.get(index), Some(&5));
+        assert_eq!(arena.get_by_slot(0), Some((index, &5)));
+    }
+
+    #[test]
     fn insert_at_slot() {
         let mut arena = Arena::new();
 
