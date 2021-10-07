@@ -2,6 +2,9 @@
 
 {{readme}}
 
+[`Arena`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Arena.html
+[`Index`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Index.html
+
 ## License
 
 Licensed under either of

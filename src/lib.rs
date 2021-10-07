@@ -7,9 +7,9 @@ Thunderdome is a ~~gladitorial~~ generational arena inspired by
 [generational-arena](https://crates.io/crates/generational-arena),
 [slotmap](https://crates.io/crates/slotmap), and
 [slab](https://crates.io/crates/slab). It provides constant time insertion,
-lookup, and removal via small (8 byte) keys returned from `Arena`.
+lookup, and removal via small (8 byte) keys returned from [`Arena`].
 
-Thunderdome's key type, `Index`, is still 8 bytes when put inside of an
+Thunderdome's key type, [`Index`], is still 8 bytes when put inside of an
 `Option<T>` thanks to Rust's `NonZero*` types.
 
 ## Basic Examples

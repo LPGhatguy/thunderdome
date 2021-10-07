@@ -8,9 +8,9 @@ Thunderdome is a ~~gladitorial~~ generational arena inspired by
 [generational-arena](https://crates.io/crates/generational-arena),
 [slotmap](https://crates.io/crates/slotmap), and
 [slab](https://crates.io/crates/slab). It provides constant time insertion,
-lookup, and removal via small (8 byte) keys returned from `Arena`.
+lookup, and removal via small (8 byte) keys returned from [`Arena`].
 
-Thunderdome's key type, `Index`, is still 8 bytes when put inside of an
+Thunderdome's key type, [`Index`], is still 8 bytes when put inside of an
 `Option<T>` thanks to Rust's `NonZero*` types.
 
 ### Basic Examples
@@ -64,6 +64,9 @@ assert_eq!(arena.get(foo), None);
 Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
+
+[`Arena`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Arena.html
+[`Index`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Index.html
 
 ## License
 
