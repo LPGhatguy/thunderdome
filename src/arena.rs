@@ -178,6 +178,139 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Traverse the free list and remove this known-empty slot from it, given the slot to remove
+    /// and the `next_free` pointer of that slot.
+    fn remove_slot_from_free_list(&mut self, slot: u32, new_next_free: Option<FreePointer>) {
+        // We will need to fix up the free list so that whatever pointer previously pointed
+        // to this empty entry will point to the next empty entry after it.
+        let mut next_fp = self
+            .first_free
+            .expect("Free entry exists but first_free is None");
+
+        // As state during this traversal, we keep the "next free" pointer which we are testing
+        // (which will always be `Some` as long as the free list is correct and contains this empty
+        // entry) as well as the current slot that contains that "next free" pointer. If the current
+        // slot is `None`, it means that the container of the relevant "next free" pointer is
+        // actually the root (`self.first_free`).
+        let mut current_slot = None;
+        while next_fp.slot() != slot {
+            current_slot = Some(next_fp.slot());
+            next_fp = self
+                .storage
+                .get(next_fp.slot() as usize)
+                .expect("Empty entry not in storage!")
+                .get_empty()
+                .expect("Entry in free list not actually empty!")
+                .next_free
+                .expect("Hit the end of the free list without finding the target slot!");
+        }
+
+        // If we found the slot to fix, then fix it; otherwise, we know that this slot is
+        // actually the very first in the free list, so fix it at the root.
+        match current_slot {
+            Some(slot_to_fix) => {
+                self.storage[slot_to_fix as usize]
+                    .get_empty()
+                    .unwrap()
+                    .next_free = new_next_free
+            }
+            None => self.first_free = new_next_free,
+        }
+    }
+
+    // Shared functionality between `insert_at` and `insert_at_slot`.
+    #[inline]
+    fn insert_at_inner(
+        &mut self,
+        slot: u32,
+        generation: Option<Generation>,
+        value: T,
+    ) -> (Index, Option<T>) {
+        // Three cases to consider:
+        //
+        // 1.) The slot is free; we need to traverse the free list, remove it from the list, and
+        //     then insert the value.
+        // 2.) The slot is occupied; we can just replace the value and return the old one.
+        // 3.) The slot is beyond the current length of the arena. In this case, we must extend
+        //     the arena with new empty slots filling the free list accordingly, and then insert the
+        //     value.
+
+        let (index, old_value) = match self.storage.get_mut(slot as usize) {
+            Some(Entry::Empty(empty)) => {
+                let generation = generation.unwrap_or_else(|| empty.generation.next());
+                // We will need to fix up the free list so that whatever pointer previously pointed
+                // to this empty entry will point to the next empty entry after it.
+                let new_next_free = empty.next_free;
+                self.remove_slot_from_free_list(slot, new_next_free);
+                self.storage[slot as usize] = Entry::Occupied(OccupiedEntry { generation, value });
+
+                (Index { slot, generation }, None)
+            }
+            Some(Entry::Occupied(occupied)) => {
+                occupied.generation = generation.unwrap_or_else(|| occupied.generation.next());
+                let generation = occupied.generation;
+                let old_value = replace(&mut occupied.value, value);
+
+                (Index { slot, generation }, Some(old_value))
+            }
+            None => {
+                let mut first_free = self.first_free;
+                while self.storage.len() < slot as usize {
+                    let new_slot: u32 = self.storage.len().try_into().unwrap_or_else(|_| {
+                        unreachable!("Arena storage exceeded what can be represented by a u32")
+                    });
+
+                    self.storage.push(Entry::Empty(EmptyEntry {
+                        generation: Generation::first(),
+                        next_free: first_free,
+                    }));
+
+                    first_free = Some(FreePointer::from_slot(new_slot));
+                }
+
+                self.first_free = first_free;
+                let generation = generation.unwrap_or_else(Generation::first);
+                self.storage
+                    .push(Entry::Occupied(OccupiedEntry { generation, value }));
+
+                (Index { slot, generation }, None)
+            }
+        };
+
+        // If this insertion didn't replace an old value, then the arena now contains one more
+        // element; we need to update its length accordingly.
+        if old_value.is_none() {
+            self.len = self
+                .len
+                .checked_add(1)
+                .unwrap_or_else(|| panic!("Cannot insert more than u32::MAX elements into Arena"));
+        }
+
+        (index, old_value)
+    }
+
+    /// Insert a new value at a given index, returning the old value if present. The entry's
+    /// generation is set to the given index's generation.
+    ///
+    /// # Caveats
+    ///
+    /// This method is capable of "resurrecting" an old `Index`. This is unavoidable; if we already
+    /// have an occupied entry (or had) at this index of some generation M, and then `insert_at`
+    /// that same slot but with a generation N < M, eventually after some number of insertions and
+    /// removals it is possible we could end up with an index matching that old index. There are few
+    /// cases where this is likely to be a problem, but it is still possible.
+    pub fn insert_at(&mut self, index: Index, value: T) -> Option<T> {
+        self.insert_at_inner(index.slot, Some(index.generation), value)
+            .1
+    }
+
+    /// Insert a new value at a given slot, returning the old value if present. If the slot is
+    /// already occupied, this will increment the generation of the slot, and invalidate any
+    /// previous indices pointing to it.
+    pub fn insert_at_slot(&mut self, slot: u32, value: T) -> (Index, Option<T>) {
+        self.insert_at_inner(slot, None, value)
+    }
+
     /// Returns true if the given index is valid for the arena.
     pub fn contains(&self, index: Index) -> bool {
         match self.storage.get(index.slot as usize) {
@@ -504,7 +637,7 @@ impl<T> ops::IndexMut<Index> for Arena<T> {
 
 #[cfg(test)]
 mod test {
-    use super::{Arena, Index};
+    use super::{Arena, Generation, Index};
 
     use std::mem::size_of;
 
@@ -578,6 +711,44 @@ mod test {
         assert_eq!(arena.get(three), Some(&3));
         assert_eq!(arena.get(two), None);
         assert_eq!(arena.get_by_slot(two.slot()), Some((three, &3)));
+    }
+
+    #[test]
+    fn insert_at() {
+        let mut arena = Arena::new();
+        // Numbers definitely not chosen by fair dice roll
+        let index = Index {
+            slot: 42,
+            generation: Generation::from_u32(78),
+        };
+        arena.insert_at(index, 5);
+        assert_eq!(arena.len(), 1);
+        assert_eq!(arena.get(index), Some(&5));
+        assert_eq!(arena.get_by_slot(42), Some((index, &5)));
+    }
+
+    #[test]
+    fn insert_at_first_slot() {
+        let mut arena = Arena::new();
+        // Numbers definitely not chosen by fair dice roll
+        let index = Index {
+            slot: 0,
+            generation: Generation::from_u32(3),
+        };
+        arena.insert_at(index, 5);
+        assert_eq!(arena.len(), 1);
+        assert_eq!(arena.get(index), Some(&5));
+        assert_eq!(arena.get_by_slot(0), Some((index, &5)));
+    }
+
+    #[test]
+    fn insert_at_slot() {
+        let mut arena = Arena::new();
+
+        let (index, _) = arena.insert_at_slot(42, 5);
+        assert_eq!(arena.len(), 1);
+        assert_eq!(arena.get(index), Some(&5));
+        assert_eq!(arena.get_by_slot(42), Some((index, &5)));
     }
 
     #[test]
