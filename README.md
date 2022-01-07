@@ -91,7 +91,7 @@ assert_eq!(output, r#"[[1,"Foo"],[1,null],[2,"Baz"]]"#);
 
 ### Minimum Supported Rust Version (MSRV)
 
-Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
+Thunderdome supports Rust 1.36.0 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
 
