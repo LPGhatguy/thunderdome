@@ -48,7 +48,7 @@ assert_eq!(arena.get(foo), None);
 | Max Elements                 | 2³²         | 2⁶⁴                | 2³²     | 2⁶⁴  |
 | Non-`Copy` Values            | Yes         | Yes                | Yes     | Yes  |
 | `no_std` Support             | No          | Yes                | Yes     | No   |
-| Serde Support                | No          | Yes                | Yes     | No   |
+| Serde Support                | Yes         | Yes                | Yes     | No   |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
 * See [the Thunderdome comparison
@@ -58,6 +58,36 @@ assert_eq!(arena.get(foo), None);
 1. Generational indices help solve the [ABA
    Problem](https://en.wikipedia.org/wiki/ABA_problem), which can cause dangling
    keys to mistakenly access newly-inserted data.
+
+### Serde Support
+Enable the `serde` feature to allow serializing and deserializing [`Arena`].
+
+Thunderdome serializes the arena's entire storage, including empty slots, to
+ensure that indexes are not reused.
+
+Here is an example of how [`Arena`] is serialized, using JSON:
+
+```rust
+use thunderdome::Arena;
+
+let mut arena = Arena::new();
+
+// Foo is inserted and left alone.
+arena.insert("Foo");
+
+// Bar is inserted, and then removed later.
+let bar = arena.insert("Bar");
+
+// Baz is inserted, removed, and reinserted.
+let baz = arena.insert("Baz");
+arena.remove(baz);
+let baz = arena.insert("Baz");
+
+arena.remove(bar);
+
+let output = serde_json::to_string(&arena).unwrap();
+assert_eq!(output, r#"[[1,"Foo"],[1,null],[2,"Baz"]]"#);
+```
 
 ### Minimum Supported Rust Version (MSRV)
 

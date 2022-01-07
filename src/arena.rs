@@ -60,7 +60,7 @@ impl Index {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Entry<T> {
     Occupied(OccupiedEntry<T>),
     Empty(EmptyEntry),
@@ -82,15 +82,31 @@ impl<T> Entry<T> {
             Entry::Occupied(_) => None,
         }
     }
+
+    #[cfg(feature = "serde")]
+    pub(crate) fn value(&self) -> Option<&T> {
+        match self {
+            Entry::Occupied(occupied) => Some(&occupied.value),
+            Entry::Empty(_) => None,
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    pub(crate) fn generation(&self) -> Generation {
+        match self {
+            Entry::Occupied(occupied) => occupied.generation,
+            Entry::Empty(empty) => empty.generation,
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct OccupiedEntry<T> {
     pub(crate) generation: Generation,
     pub(crate) value: T,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct EmptyEntry {
     pub(crate) generation: Generation,
     pub(crate) next_free: Option<FreePointer>,
@@ -581,6 +597,33 @@ impl<T> Arena<T> {
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| unreachable!());
                 }
             }
+        }
+    }
+
+    /// Gives access to the arena's internal storage for use in serialization.
+    #[cfg(feature = "serde")]
+    pub(crate) fn storage(&self) -> &Vec<Entry<T>> {
+        &self.storage
+    }
+
+    /// Push a value into the arena with the given generation and value. Used in
+    /// serialization.
+    #[cfg(feature = "serde")]
+    pub(crate) fn push_slot(&mut self, generation: Generation, value: Option<T>) {
+        if let Some(value) = value {
+            self.storage
+                .push(Entry::Occupied(OccupiedEntry { generation, value }));
+            self.len = self
+                .len
+                .checked_add(1)
+                .unwrap_or_else(|| panic!("Cannot insert more than u32::MAX elements into Arena"));
+        } else {
+            let slot = self.storage.len() as u32;
+            self.storage.push(Entry::Empty(EmptyEntry {
+                generation,
+                next_free: self.first_free,
+            }));
+            self.first_free = Some(FreePointer::from_slot(slot));
         }
     }
 }

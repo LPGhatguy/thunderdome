@@ -4,7 +4,7 @@ use std::num::NonZeroU32;
 /// to prevent off-by-one errors and leaking unsafety.
 ///
 /// Uses NonZeroU32 to stay small when put inside an `Option`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(transparent)]
 pub(crate) struct FreePointer(NonZeroU32);
 
