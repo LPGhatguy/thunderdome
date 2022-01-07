@@ -60,7 +60,10 @@ mod test {
         let expected_len = case
             .expected_storage
             .iter()
-            .filter(|x| matches!(x, Entry::Occupied(_)))
+            .filter(|x| match x {
+                Entry::Occupied(_) => true,
+                Entry::Empty(_) => false,
+            })
             .count();
         assert_eq!(de.len(), expected_len);
     }
