@@ -53,6 +53,11 @@ impl Index {
         Some(Self { generation, slot })
     }
 
+    /// Convert this `Index` into a generation, discarding its slot.
+    pub fn generation(self) -> u32 {
+        self.generation.to_u32()
+    }
+
     /// Convert this `Index` into a slot, discarding its generation. Slots describe a
     /// location in an [`Arena`] and are reused when entries are removed.
     pub fn slot(self) -> u32 {
