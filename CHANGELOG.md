@@ -1,6 +1,9 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Added `Index::generation` for extracting the generation portion of an index. ([#34])
+
+[#34]: https://github.com/LPGhatguy/thunderdome/issues/34
 
 ## [0.5.0] - 2021-10-07
 * Moved iterator types into `thunderdome::iter`. ([#24])
