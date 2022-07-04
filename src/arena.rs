@@ -644,6 +644,8 @@ impl<T> ops::IndexMut<Index> for Arena<T> {
 
 #[cfg(test)]
 mod test {
+    use crate::free_pointer::FreePointer;
+
     use super::{Arena, Generation, Index};
 
     use std::mem::size_of;
@@ -756,6 +758,18 @@ mod test {
         assert_eq!(arena.len(), 1);
         assert_eq!(arena.get(index), Some(&5));
         assert_eq!(arena.get_by_slot(42), Some((index, &5)));
+    }
+
+    #[test]
+    fn insert_at_middle() {
+        let mut arena = Arena::new();
+        arena.insert_at_slot(4, 50);
+        arena.insert_at_slot(2, 40);
+
+        let empty = arena.storage.get(3).unwrap().get_empty().unwrap();
+        if empty.next_free != Some(FreePointer::from_slot(1)) {
+            panic!("Invalid free list: {:#?}", arena);
+        }
     }
 
     #[test]
