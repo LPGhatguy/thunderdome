@@ -1,10 +1,11 @@
+use std::fmt;
 use std::num::NonZeroU32;
 
 /// Contains a reference to a free slot in an arena, encapsulating NonZeroU32
 /// to prevent off-by-one errors and leaking unsafety.
 ///
 /// Uses NonZeroU32 to stay small when put inside an `Option`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 #[repr(transparent)]
 pub(crate) struct FreePointer(NonZeroU32);
 
@@ -25,6 +26,12 @@ impl FreePointer {
     pub(crate) fn slot(self) -> u32 {
         // This will never underflow due to the field being guaranteed non-zero.
         self.0.get() - 1
+    }
+}
+
+impl fmt::Debug for FreePointer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FreePointer({})", self.slot())
     }
 }
 

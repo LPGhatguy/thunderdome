@@ -1,3 +1,4 @@
+use std::fmt;
 use std::num::NonZeroU32;
 
 /// Tracks the generation of an entry in an arena. Encapsulates NonZeroU32 to
@@ -6,7 +7,7 @@ use std::num::NonZeroU32;
 ///
 /// Uses NonZeroU32 to help `Index` stay the same size when put inside an
 /// `Option`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
 pub(crate) struct Generation(NonZeroU32);
 
@@ -32,6 +33,12 @@ impl Generation {
 
     pub(crate) fn from_u32(gen: u32) -> Option<Self> {
         NonZeroU32::new(gen).map(Generation)
+    }
+}
+
+impl fmt::Debug for Generation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Generation({})", self.to_u32())
     }
 }
 
