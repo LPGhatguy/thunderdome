@@ -1,9 +1,14 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+
+## [0.5.1] - 2022-07-04
+* Fixed bug when calling `Arena::insert_at` on a slot in the middle of the free list. ([#36])
 * Added `Index::generation` for extracting the generation portion of an index. ([#34])
 
 [#34]: https://github.com/LPGhatguy/thunderdome/issues/34
+[#36]: https://github.com/LPGhatguy/thunderdome/issues/36
+[0.5.1]: https://github.com/LPGhatguy/thunderdome/releases/tag/v0.5.1
 
 ## [0.5.0] - 2021-10-07
 * Moved iterator types into `thunderdome::iter`. ([#24])
