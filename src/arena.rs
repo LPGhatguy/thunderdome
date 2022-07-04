@@ -80,10 +80,18 @@ impl<T> Entry<T> {
         }
     }
 
-    /// If the entry is empty, return a copy of the emptiness data.
-    fn get_empty(&self) -> Option<EmptyEntry> {
+    /// If the entry is empty, a reference to it.
+    fn as_empty(&self) -> Option<&EmptyEntry> {
         match self {
-            Entry::Empty(empty) => Some(*empty),
+            Entry::Empty(empty) => Some(empty),
+            Entry::Occupied(_) => None,
+        }
+    }
+
+    /// If the entry is empty, return a mutable reference to it.
+    fn as_empty_mut(&mut self) -> Option<&mut EmptyEntry> {
+        match self {
+            Entry::Empty(empty) => Some(empty),
             Entry::Occupied(_) => None,
         }
     }
@@ -155,7 +163,7 @@ impl<T> Arena<T> {
             });
 
             let empty = entry
-                .get_empty()
+                .as_empty()
                 .unwrap_or_else(|| unreachable!("first_free pointed to an occupied entry"));
 
             // If there is another empty entry after this one, we'll update the
@@ -206,7 +214,7 @@ impl<T> Arena<T> {
                 .storage
                 .get(next_fp.slot() as usize)
                 .expect("Empty entry not in storage!")
-                .get_empty()
+                .as_empty()
                 .expect("Entry in free list not actually empty!")
                 .next_free
                 .expect("Hit the end of the free list without finding the target slot!");
@@ -217,7 +225,7 @@ impl<T> Arena<T> {
         match current_slot {
             Some(slot_to_fix) => {
                 self.storage[slot_to_fix as usize]
-                    .get_empty()
+                    .as_empty_mut()
                     .unwrap()
                     .next_free = new_next_free
             }
@@ -644,6 +652,8 @@ impl<T> ops::IndexMut<Index> for Arena<T> {
 
 #[cfg(test)]
 mod test {
+    use crate::free_pointer::FreePointer;
+
     use super::{Arena, Generation, Index};
 
     use std::mem::size_of;
@@ -756,6 +766,18 @@ mod test {
         assert_eq!(arena.len(), 1);
         assert_eq!(arena.get(index), Some(&5));
         assert_eq!(arena.get_by_slot(42), Some((index, &5)));
+    }
+
+    #[test]
+    fn insert_at_middle() {
+        let mut arena = Arena::new();
+        arena.insert_at_slot(4, 50);
+        arena.insert_at_slot(2, 40);
+
+        let empty = arena.storage.get(3).unwrap().as_empty().unwrap();
+        if empty.next_free != Some(FreePointer::from_slot(1)) {
+            panic!("Invalid free list: {:#?}", arena);
+        }
     }
 
     #[test]
