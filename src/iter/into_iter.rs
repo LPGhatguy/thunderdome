@@ -1,4 +1,4 @@
-use std::iter::{ExactSizeIterator, FusedIterator};
+use core::iter::{ExactSizeIterator, FusedIterator};
 
 use crate::arena::{Arena, Index};
 
@@ -46,7 +46,7 @@ impl<T> Iterator for IntoIter<T> {
 impl<T> FusedIterator for IntoIter<T> {}
 impl<T> ExactSizeIterator for IntoIter<T> {}
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod test {
     use crate::Arena;
 

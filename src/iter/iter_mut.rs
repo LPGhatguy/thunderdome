@@ -1,6 +1,6 @@
-use std::convert::TryInto;
-use std::iter::{Enumerate, ExactSizeIterator, FusedIterator};
-use std::slice;
+use core::convert::TryInto;
+use core::iter::{Enumerate, ExactSizeIterator, FusedIterator};
+use core::slice;
 
 use crate::arena::{Entry, Index};
 
@@ -50,7 +50,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 impl<'a, T> FusedIterator for IterMut<'a, T> {}
 impl<'a, T> ExactSizeIterator for IterMut<'a, T> {}
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod test {
     use crate::Arena;
 

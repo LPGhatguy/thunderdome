@@ -1,5 +1,5 @@
-use std::fmt;
-use std::num::NonZeroU32;
+use core::fmt;
+use core::num::NonZeroU32;
 
 /// Contains a reference to a free slot in an arena, encapsulating NonZeroU32
 /// to prevent off-by-one errors and leaking unsafety.
@@ -48,6 +48,6 @@ mod test {
     #[test]
     #[should_panic(expected = "u32 overflowed calculating free pointer from u32")]
     fn panic_on_overflow() {
-        let _ = FreePointer::from_slot(std::u32::MAX);
+        let _ = FreePointer::from_slot(core::u32::MAX);
     }
 }
