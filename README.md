@@ -47,7 +47,7 @@ assert_eq!(arena.get(foo), None);
 | `size_of::<Option<Index>>()` | 8           | 24                 | 8       | 16   |
 | Max Elements                 | 2³²         | 2⁶⁴                | 2³²     | 2⁶⁴  |
 | Non-`Copy` Values            | Yes         | Yes                | Yes     | Yes  |
-| `no_std` Support             | No          | Yes                | Yes     | No   |
+| `no_std` Support             | Yes         | Yes                | Yes     | No   |
 | Serde Support                | No          | Yes                | Yes     | No   |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
@@ -61,12 +61,16 @@ assert_eq!(arena.get(foo), None);
 
 ### Minimum Supported Rust Version (MSRV)
 
-Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
+Thunderdome supports Rust 1.36 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
 
 [`Arena`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Arena.html
 [`Index`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Index.html
+
+## Crate features
+
+By default the `std` feature is enabled. The `std` feature can be disabled to make this crate `no_std` capable.
 
 ## License
 

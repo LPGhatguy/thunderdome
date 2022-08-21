@@ -64,6 +64,10 @@ assert_eq!(arena.get(foo), None);
 Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
+
+## Crate features
+
+By default the `std` feature is enabled. The `std` feature can be disabled to make this crate `no_std` capable.
 */
 
 #![forbid(missing_docs)]
@@ -71,6 +75,13 @@ will only require minor version bumps, but will need significant justification.
 // we should usually use methods like `checked_add` and `checked_sub` instead
 // of the `Add` or `Sub` operators.
 #![deny(clippy::integer_arithmetic)]
+
+// TODO: Deny clippy::std_instead_of_core, clippy::std_instead_of_alloc and
+// clippy::alloc_instead_of_core when released.
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
 
 mod arena;
 mod free_pointer;

@@ -1,5 +1,5 @@
-use std::iter::{ExactSizeIterator, FusedIterator};
-use std::slice;
+use core::iter::{ExactSizeIterator, FusedIterator};
+use core::slice;
 
 use crate::arena::{Entry, Index};
 
@@ -52,7 +52,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 impl<'a, T> FusedIterator for Iter<'a, T> {}
 impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod test {
     use crate::Arena;
 

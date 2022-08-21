@@ -1,5 +1,5 @@
-use std::fmt;
-use std::num::NonZeroU32;
+use core::fmt;
+use core::num::NonZeroU32;
 
 /// Tracks the generation of an entry in an arena. Encapsulates NonZeroU32 to
 /// reduce the number of redundant checks needed, as well as enforcing checked
@@ -46,7 +46,7 @@ impl fmt::Debug for Generation {
 mod test {
     use super::Generation;
 
-    use std::num::NonZeroU32;
+    use core::num::NonZeroU32;
 
     #[test]
     fn first_and_next() {
@@ -59,8 +59,8 @@ mod test {
 
     #[test]
     fn wrap_on_overflow() {
-        let max = Generation(NonZeroU32::new(std::u32::MAX).unwrap());
-        assert_eq!(max.0.get(), std::u32::MAX);
+        let max = Generation(NonZeroU32::new(core::u32::MAX).unwrap());
+        assert_eq!(max.0.get(), core::u32::MAX);
 
         let next = max.next();
         assert_eq!(next.0.get(), 1);

@@ -1,4 +1,4 @@
-use std::iter::{ExactSizeIterator, FusedIterator};
+use core::iter::{ExactSizeIterator, FusedIterator};
 
 use crate::arena::{Arena, Index};
 
@@ -53,7 +53,7 @@ impl<'a, T> Drop for Drain<'a, T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod test {
     use crate::Arena;
 

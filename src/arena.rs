@@ -1,6 +1,10 @@
-use std::convert::TryInto;
-use std::mem::replace;
-use std::ops;
+use core::convert::TryInto;
+use core::mem::replace;
+use core::ops;
+
+// Vec is part of the prelude when std is enabled.
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 use crate::free_pointer::FreePointer;
 use crate::generation::Generation;
@@ -658,7 +662,7 @@ mod test {
 
     use super::{Arena, Generation, Index};
 
-    use std::mem::size_of;
+    use core::mem::size_of;
 
     #[test]
     fn size_of_index() {
