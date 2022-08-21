@@ -540,7 +540,8 @@ impl<T> Arena<T> {
     /// Iteration order is not defined.
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
-            inner: self.storage.iter().enumerate(),
+            inner: self.storage.iter(),
+            slot: 0,
             len: self.len,
         }
     }
@@ -551,7 +552,8 @@ impl<T> Arena<T> {
     /// Iteration order is not defined.
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
-            inner: self.storage.iter_mut().enumerate(),
+            inner: self.storage.iter_mut(),
+            slot: 0,
             len: self.len,
         }
     }
