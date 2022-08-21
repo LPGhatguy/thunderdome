@@ -16,12 +16,4 @@ default = ["std"]
 std = []
 
 [workspace]
-members = ["comparison"]
-
-[[bench]]
-name = "primary"
-harness = false
-
-[dev-dependencies]
-criterion = "0.3.6"
-rand = "0.8.5"
+members = ["benchmark", "comparison"]
