@@ -12,7 +12,7 @@ lookup, and removal via small (8 byte) keys returned from [`Arena`].
 Thunderdome's key type, [`Index`], is still 8 bytes when put inside of an
 `Option<T>` thanks to Rust's `NonZero*` types.
 
-## Basic Examples
+# Basic Examples
 
 ```rust
 # use thunderdome::{Arena, Index};
@@ -38,7 +38,7 @@ assert_eq!(arena[baz], "Baz");
 assert_eq!(arena.get(foo), None);
 ```
 
-## Comparison With Similar Crates
+# Comparison With Similar Crates
 
 | Feature                      | Thunderdome | generational-arena | slotmap | slab |
 |------------------------------|-------------|--------------------|---------|------|
@@ -47,7 +47,7 @@ assert_eq!(arena.get(foo), None);
 | `size_of::<Option<Index>>()` | 8           | 24                 | 8       | 16   |
 | Max Elements                 | 2³²         | 2⁶⁴                | 2³²     | 2⁶⁴  |
 | Non-`Copy` Values            | Yes         | Yes                | Yes     | Yes  |
-| `no_std` Support             | No          | Yes                | Yes     | No   |
+| `no_std` Support             | Yes         | Yes                | Yes     | No   |
 | Serde Support                | No          | Yes                | Yes     | No   |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
@@ -59,15 +59,14 @@ assert_eq!(arena.get(foo), None);
    Problem](https://en.wikipedia.org/wiki/ABA_problem), which can cause dangling
    keys to mistakenly access newly-inserted data.
 
-## Minimum Supported Rust Version (MSRV)
+# Minimum Supported Rust Version (MSRV)
 
-Thunderdome supports Rust 1.34.1 and newer. Until Thunderdome reaches 1.0,
+Thunderdome supports Rust 1.36.0 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
 
-## Crate features
-
-By default the `std` feature is enabled. The `std` feature can be disabled to make this crate `no_std` capable.
+# Crate Features
+* `std` (default): Use the standard library. Disable to make this crate `no-std` compatible.
 */
 
 #![forbid(missing_docs)]
@@ -75,7 +74,6 @@ By default the `std` feature is enabled. The `std` feature can be disabled to ma
 // we should usually use methods like `checked_add` and `checked_sub` instead
 // of the `Add` or `Sub` operators.
 #![deny(clippy::integer_arithmetic)]
-
 // TODO: Deny clippy::std_instead_of_core, clippy::std_instead_of_alloc and
 // clippy::alloc_instead_of_core when released.
 #![cfg_attr(not(feature = "std"), no_std)]

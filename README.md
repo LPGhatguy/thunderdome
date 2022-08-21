@@ -13,7 +13,7 @@ lookup, and removal via small (8 byte) keys returned from [`Arena`].
 Thunderdome's key type, [`Index`], is still 8 bytes when put inside of an
 `Option<T>` thanks to Rust's `NonZero*` types.
 
-### Basic Examples
+## Basic Examples
 
 ```rust
 let mut arena = Arena::new();
@@ -38,7 +38,7 @@ assert_eq!(arena[baz], "Baz");
 assert_eq!(arena.get(foo), None);
 ```
 
-### Comparison With Similar Crates
+## Comparison With Similar Crates
 
 | Feature                      | Thunderdome | generational-arena | slotmap | slab |
 |------------------------------|-------------|--------------------|---------|------|
@@ -59,18 +59,17 @@ assert_eq!(arena.get(foo), None);
    Problem](https://en.wikipedia.org/wiki/ABA_problem), which can cause dangling
    keys to mistakenly access newly-inserted data.
 
-### Minimum Supported Rust Version (MSRV)
+## Minimum Supported Rust Version (MSRV)
 
-Thunderdome supports Rust 1.36 and newer. Until Thunderdome reaches 1.0,
+Thunderdome supports Rust 1.36.0 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
 
+## Crate Features
+* `std` (default): Use the standard library. Disable to make this crate `no-std` compatible.
+
 [`Arena`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Arena.html
 [`Index`]: https://docs.rs/thunderdome/latest/thunderdome/struct.Index.html
-
-## Crate features
-
-By default the `std` feature is enabled. The `std` feature can be disabled to make this crate `no_std` capable.
 
 ## License
 
