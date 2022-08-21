@@ -917,13 +917,13 @@ mod test {
 
     #[test]
     fn index_bits_roundtrip() {
-        let index = Index::from_bits(0x1BADCAFE_DEADBEEF).unwrap();
-        assert_eq!(index.to_bits(), 0x1BADCAFE_DEADBEEF);
+        let index = Index::from_bits(0x1BAD_CAFE_DEAD_BEEF).unwrap();
+        assert_eq!(index.to_bits(), 0x1BAD_CAFE_DEAD_BEEF);
     }
 
     #[test]
     fn index_bits_none_on_zero_generation() {
-        let index = Index::from_bits(0x00000000_DEADBEEF);
+        let index = Index::from_bits(0x0000_0000_DEAD_BEEF);
         assert_eq!(index, None);
     }
 }
