@@ -27,12 +27,16 @@ impl Generation {
         Generation(unsafe { NonZeroU32::new_unchecked(next_generation) })
     }
 
-    pub(crate) fn to_u32(self) -> u32 {
+    pub(crate) const fn to_u32(self) -> u32 {
         self.0.get()
     }
 
-    pub(crate) fn from_u32(gen: u32) -> Option<Self> {
-        NonZeroU32::new(gen).map(Generation)
+    pub(crate) const fn from_u32(gen: u32) -> Option<Self> {
+        // match like this since `map` is not constant
+        match NonZeroU32::new(gen) {
+            Some(v) => Some(Generation(v)),
+            None => None,
+        }
     }
 }
 

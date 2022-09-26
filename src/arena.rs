@@ -31,7 +31,7 @@ impl Index {
     /// Convert this `Index` to an equivalent `u64` representation. Mostly
     /// useful for passing to code outside of Rust.
     #[allow(clippy::integer_arithmetic)]
-    pub fn to_bits(self) -> u64 {
+    pub const fn to_bits(self) -> u64 {
         // This is safe because a `u32` bit-shifted by 32 will still fit in a `u64`.
         ((self.generation.to_u32() as u64) << 32) | (self.slot as u64)
     }
@@ -48,23 +48,27 @@ impl Index {
     /// `Index::to_bits` in 0.4.0 and `Index::from_bits` in 0.4.2 is guaranteed
     /// to work.
     #[allow(clippy::integer_arithmetic)]
-    pub fn from_bits(bits: u64) -> Option<Self> {
+    pub const fn from_bits(bits: u64) -> Option<Self> {
         // By bit-shifting right by 32, we're undoing the left-shift in `to_bits`
         // thus this is okay by the same rationale.
-        let generation = Generation::from_u32((bits >> 32) as u32)?;
+        let generation = match Generation::from_u32((bits >> 32) as u32) {
+            Some(v) => v,
+            None => return None,
+        };
+
         let slot = bits as u32;
 
         Some(Self { generation, slot })
     }
 
     /// Convert this `Index` into a generation, discarding its slot.
-    pub fn generation(self) -> u32 {
+    pub const fn generation(self) -> u32 {
         self.generation.to_u32()
     }
 
     /// Convert this `Index` into a slot, discarding its generation. Slots describe a
     /// location in an [`Arena`] and are reused when entries are removed.
-    pub fn slot(self) -> u32 {
+    pub const fn slot(self) -> u32 {
         self.slot
     }
 }
@@ -115,7 +119,7 @@ pub(crate) struct EmptyEntry {
 
 impl<T> Arena<T> {
     /// Construct an empty arena.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             storage: Vec::new(),
             len: 0,
@@ -134,7 +138,7 @@ impl<T> Arena<T> {
     }
 
     /// Return the number of elements contained in the arena.
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.len as usize
     }
 
@@ -145,7 +149,7 @@ impl<T> Arena<T> {
     }
 
     /// Returns whether the arena is empty.
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.len == 0
     }
 
