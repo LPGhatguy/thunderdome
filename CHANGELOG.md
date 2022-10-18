@@ -2,6 +2,13 @@
 
 ## Unreleased Changes
 
+## [0.6.0] - 2022-10-18
+* Raised MSRV to 1.47.0.
+* Many functions are now `const` ([#38])
+
+[#38]: https://github.com/LPGhatguy/thunderdome/pull/38
+[0.6.0]: https://github.com/LPGhatguy/thunderdome/releases/tag/v0.6.0
+
 ## [0.5.1] - 2022-07-04
 * Fixed bug when calling `Arena::insert_at` on a slot in the middle of the free list. ([#36])
 * Added `Index::generation` for extracting the generation portion of an index. ([#34])
