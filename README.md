@@ -61,7 +61,7 @@ assert_eq!(arena.get(foo), None);
 
 ## Minimum Supported Rust Version (MSRV)
 
-Thunderdome supports Rust 1.36.0 and newer. Until Thunderdome reaches 1.0,
+Thunderdome supports Rust 1.47.0 and newer. Until Thunderdome reaches 1.0,
 changes to the MSRV will require major version bumps. After 1.0, MSRV changes
 will only require minor version bumps, but will need significant justification.
 
