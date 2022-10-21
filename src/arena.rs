@@ -1,9 +1,9 @@
 use core::cmp::{Eq, PartialEq};
 use core::convert::TryInto;
+use core::fmt;
 use core::marker::PhantomData;
 use core::mem::replace;
 use core::ops;
-use core::{cmp, fmt};
 
 // Vec is part of the prelude when std is enabled.
 #[cfg(not(feature = "std"))]
@@ -413,10 +413,7 @@ where
 
     /// Returns true if the given index is valid for the arena.
     pub fn contains(&self, index: Index<I>) -> bool {
-        match self.storage.get(index.slot as usize) {
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => true,
-            _ => false,
-        }
+        matches!(self.storage.get(index.slot as usize), Some(Entry::Occupied(occupied)) if occupied.generation == index.generation)
     }
 
     /// Checks to see whether a slot is occupied in the arena, and if it is,
@@ -696,13 +693,19 @@ where
     }
 }
 
-impl<T, I> Default for Arena<T, I> where I: Eq + PartialEq {
+impl<T, I> Default for Arena<T, I>
+where
+    I: Eq + PartialEq,
+{
     fn default() -> Self {
         Arena::new()
     }
 }
 
-impl<T, I> IntoIterator for Arena<T, I> where I: Eq + PartialEq {
+impl<T, I> IntoIterator for Arena<T, I>
+where
+    I: Eq + PartialEq,
+{
     type Item = (Index<I>, T);
     type IntoIter = IntoIter<T, I>;
 
@@ -714,7 +717,10 @@ impl<T, I> IntoIterator for Arena<T, I> where I: Eq + PartialEq {
     }
 }
 
-impl<'a, T, I> IntoIterator for &'a Arena<T, I> where I: Eq + PartialEq {
+impl<'a, T, I> IntoIterator for &'a Arena<T, I>
+where
+    I: Eq + PartialEq,
+{
     type Item = (Index<I>, &'a T);
     type IntoIter = Iter<'a, T, I>;
 
@@ -723,7 +729,10 @@ impl<'a, T, I> IntoIterator for &'a Arena<T, I> where I: Eq + PartialEq {
     }
 }
 
-impl<'a, T, I> IntoIterator for &'a mut Arena<T, I> where I: Eq + PartialEq {
+impl<'a, T, I> IntoIterator for &'a mut Arena<T, I>
+where
+    I: Eq + PartialEq,
+{
     type Item = (Index<I>, &'a mut T);
     type IntoIter = IterMut<'a, T, I>;
 
@@ -732,7 +741,10 @@ impl<'a, T, I> IntoIterator for &'a mut Arena<T, I> where I: Eq + PartialEq {
     }
 }
 
-impl<T, I> ops::Index<Index<I>> for Arena<T, I> where I: Eq + PartialEq {
+impl<T, I> ops::Index<Index<I>> for Arena<T, I>
+where
+    I: Eq + PartialEq,
+{
     type Output = T;
 
     fn index(&self, index: Index<I>) -> &Self::Output {
@@ -741,7 +753,10 @@ impl<T, I> ops::Index<Index<I>> for Arena<T, I> where I: Eq + PartialEq {
     }
 }
 
-impl<T, I> ops::IndexMut<Index<I>> for Arena<T, I> where I: Eq + PartialEq {
+impl<T, I> ops::IndexMut<Index<I>> for Arena<T, I>
+where
+    I: Eq + PartialEq,
+{
     fn index_mut(&mut self, index: Index<I>) -> &mut Self::Output {
         self.get_mut(index)
             .unwrap_or_else(|| panic!("No entry at index {:?}", index))
