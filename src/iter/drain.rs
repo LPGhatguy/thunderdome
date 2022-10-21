@@ -3,13 +3,13 @@ use core::iter::{ExactSizeIterator, FusedIterator};
 use crate::arena::{Arena, Index};
 
 /// See [`Arena::drain`].
-pub struct Drain<'a, T> {
-    pub(crate) arena: &'a mut Arena<T>,
+pub struct Drain<'a, T, I> where I: Eq + PartialEq {
+    pub(crate) arena: &'a mut Arena<T, I>,
     pub(crate) slot: u32,
 }
 
-impl<'a, T> Iterator for Drain<'a, T> {
-    type Item = (Index, T);
+impl<'a, T, I> Iterator for Drain<'a, T, I> where I: Eq + PartialEq {
+    type Item = (Index<I>, T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -43,10 +43,10 @@ impl<'a, T> Iterator for Drain<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for Drain<'a, T> {}
-impl<'a, T> ExactSizeIterator for Drain<'a, T> {}
+impl<'a, T, I> FusedIterator for Drain<'a, T, I> where I: Eq + PartialEq {}
+impl<'a, T, I> ExactSizeIterator for Drain<'a, T, I> where I: Eq + PartialEq {}
 
-impl<'a, T> Drop for Drain<'a, T> {
+impl<'a, T, I> Drop for Drain<'a, T, I> where I: Eq + PartialEq {
     // Continue iterating/dropping if there are any elements left.
     fn drop(&mut self) {
         self.for_each(drop);
@@ -61,7 +61,7 @@ mod test {
 
     #[test]
     fn drain() {
-        let mut arena = Arena::with_capacity(2);
+        let mut arena: Arena<u32> = Arena::with_capacity(2);
         let one = arena.insert(1);
         let two = arena.insert(2);
 

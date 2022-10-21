@@ -16,7 +16,7 @@ Thunderdome's key type, [`Index`], is still 8 bytes when put inside of an
 
 ```rust
 # use thunderdome::{Arena, Index};
-let mut arena = Arena::new();
+let mut arena: Arena<&str> = Arena::new();
 
 let foo = arena.insert("Foo");
 let bar = arena.insert("Bar");
