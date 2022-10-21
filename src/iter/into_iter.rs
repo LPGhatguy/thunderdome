@@ -1,14 +1,23 @@
-use core::{iter::{ExactSizeIterator, FusedIterator}, cmp::PartialEq};
+use core::{
+    cmp::PartialEq,
+    iter::{ExactSizeIterator, FusedIterator},
+};
 
 use crate::arena::{Arena, Index};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
-pub struct IntoIter<T, I> where I: PartialEq + Eq {
+pub struct IntoIter<T, I = ()>
+where
+    I: PartialEq + Eq,
+{
     pub(crate) arena: Arena<T, I>,
     pub(crate) slot: u32,
 }
 
-impl<T, I> Iterator for IntoIter<T, I> where I: Eq + PartialEq {
+impl<T, I> Iterator for IntoIter<T, I>
+where
+    I: Eq + PartialEq,
+{
     type Item = (Index<I>, T);
 
     fn next(&mut self) -> Option<Self::Item> {

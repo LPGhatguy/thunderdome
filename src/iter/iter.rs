@@ -5,7 +5,7 @@ use core::slice;
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter`](crate::Arena::iter).
-pub struct Iter<'a, T, I> {
+pub struct Iter<'a, T, I = ()> {
     pub(crate) len: u32,
     pub(crate) slot: u32,
     pub(crate) inner: slice::Iter<'a, Entry<T>>,

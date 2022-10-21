@@ -4,7 +4,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use thunderdome::Arena;
 
 pub fn iter(c: &mut Criterion) {
-    let mut arena = Arena::new();
+    let mut arena: Arena<u64> = Arena::new();
     for i in 0..10_000 {
         arena.insert(i);
     }

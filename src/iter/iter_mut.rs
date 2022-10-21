@@ -5,7 +5,7 @@ use core::slice;
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter_mut`](crate::Arena::iter_mut).
-pub struct IterMut<'a, T, I>
+pub struct IterMut<'a, T, I = ()>
 where
     I: Eq + PartialEq,
 {
