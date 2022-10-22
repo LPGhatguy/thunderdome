@@ -1,23 +1,14 @@
-use core::{
-    cmp::PartialEq,
-    iter::{ExactSizeIterator, FusedIterator},
-};
+use core::iter::{ExactSizeIterator, FusedIterator};
 
 use crate::arena::{Arena, Index};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
-pub struct IntoIter<T, I = ()>
-where
-    I: PartialEq + Eq,
-{
+pub struct IntoIter<T, I = ()> {
     pub(crate) arena: Arena<T, I>,
     pub(crate) slot: u32,
 }
 
-impl<T, I> Iterator for IntoIter<T, I>
-where
-    I: Eq + PartialEq,
-{
+impl<T, I> Iterator for IntoIter<T, I> {
     type Item = (Index<I>, T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -52,8 +43,8 @@ where
     }
 }
 
-impl<T, I> FusedIterator for IntoIter<T, I> where I: Eq + PartialEq {}
-impl<T, I> ExactSizeIterator for IntoIter<T, I> where I: Eq + PartialEq {}
+impl<T, I> FusedIterator for IntoIter<T, I> {}
+impl<T, I> ExactSizeIterator for IntoIter<T, I> {}
 
 #[cfg(all(test, feature = "std"))]
 mod test {

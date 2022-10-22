@@ -6,8 +6,6 @@ use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter_mut`](crate::Arena::iter_mut).
 pub struct IterMut<'a, T, I = ()>
-where
-    I: Eq + PartialEq,
 {
     pub(crate) len: u32,
     pub(crate) slot: u32,
@@ -16,8 +14,6 @@ where
 }
 
 impl<'a, T, I> Iterator for IterMut<'a, T, I>
-where
-    I: Eq + PartialEq,
 {
     type Item = (Index<I>, &'a mut T);
 
@@ -58,8 +54,8 @@ where
     }
 }
 
-impl<'a, T, I> FusedIterator for IterMut<'a, T, I> where I: Eq + PartialEq {}
-impl<'a, T, I> ExactSizeIterator for IterMut<'a, T, I> where I: Eq + PartialEq {}
+impl<'a, T, I> FusedIterator for IterMut<'a, T, I> {}
+impl<'a, T, I> ExactSizeIterator for IterMut<'a, T, I> {}
 
 #[cfg(all(test, feature = "std"))]
 mod test {

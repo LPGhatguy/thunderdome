@@ -25,19 +25,21 @@ pub struct Arena<T, I = ()> {
 }
 
 /// Index type for [`Arena`] that has a generation attached to it.
-#[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Eq, Hash, PartialOrd, Ord)]
 pub struct Index<I = ()>
-where
-    I: Eq + PartialEq,
 {
     pub(crate) slot: u32,
     pub(crate) generation: Generation,
     pub(crate) _marker: PhantomData<I>,
 }
 
+impl<I> PartialEq for Index<I> {
+    fn eq(&self, other: &Self) -> bool {
+        self.slot == other.slot && self.generation == other.generation && self._marker == other._marker
+    }
+}
+
 impl<I> Clone for Index<I>
-where
-    I: PartialEq + Eq,
 {
     fn clone(&self) -> Self {
         Self {
@@ -48,11 +50,10 @@ where
     }
 }
 
-impl<I> Copy for Index<I> where I: Eq + PartialEq {}
+impl<I> Copy for Index<I> {}
 
 impl<I> fmt::Debug for Index<I>
-where
-    I: Eq + PartialEq,
+
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Index")
@@ -64,8 +65,6 @@ where
 }
 
 impl<I> Index<I>
-where
-    I: PartialEq + Eq,
 {
     /// Convert this `Index` to an equivalent `u64` representation. Mostly
     /// useful for passing to code outside of Rust.
@@ -161,8 +160,6 @@ pub(crate) struct EmptyEntry {
 }
 
 impl<T, I> Arena<T, I>
-where
-    I: PartialEq + Eq,
 {
     /// Construct an empty arena.
     pub const fn new() -> Self {
@@ -694,8 +691,6 @@ where
 }
 
 impl<T, I> Default for Arena<T, I>
-where
-    I: Eq + PartialEq,
 {
     fn default() -> Self {
         Arena::new()
@@ -703,8 +698,6 @@ where
 }
 
 impl<T, I> IntoIterator for Arena<T, I>
-where
-    I: Eq + PartialEq,
 {
     type Item = (Index<I>, T);
     type IntoIter = IntoIter<T, I>;
@@ -718,8 +711,6 @@ where
 }
 
 impl<'a, T, I> IntoIterator for &'a Arena<T, I>
-where
-    I: Eq + PartialEq,
 {
     type Item = (Index<I>, &'a T);
     type IntoIter = Iter<'a, T, I>;
@@ -730,8 +721,6 @@ where
 }
 
 impl<'a, T, I> IntoIterator for &'a mut Arena<T, I>
-where
-    I: Eq + PartialEq,
 {
     type Item = (Index<I>, &'a mut T);
     type IntoIter = IterMut<'a, T, I>;
@@ -742,8 +731,6 @@ where
 }
 
 impl<T, I> ops::Index<Index<I>> for Arena<T, I>
-where
-    I: Eq + PartialEq,
 {
     type Output = T;
 
@@ -754,8 +741,6 @@ where
 }
 
 impl<T, I> ops::IndexMut<Index<I>> for Arena<T, I>
-where
-    I: Eq + PartialEq,
 {
     fn index_mut(&mut self, index: Index<I>) -> &mut Self::Output {
         self.get_mut(index)

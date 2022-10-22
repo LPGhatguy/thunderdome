@@ -13,8 +13,6 @@ pub struct Iter<'a, T, I = ()> {
 }
 
 impl<'a, T, I> Iterator for Iter<'a, T, I>
-where
-    I: Eq + PartialEq,
 {
     type Item = (Index<I>, &'a T);
 
@@ -55,8 +53,8 @@ where
     }
 }
 
-impl<'a, T, I> FusedIterator for Iter<'a, T, I> where I: Eq + PartialEq {}
-impl<'a, T, I> ExactSizeIterator for Iter<'a, T, I> where I: Eq + PartialEq {}
+impl<'a, T, I> FusedIterator for Iter<'a, T, I> {}
+impl<'a, T, I> ExactSizeIterator for Iter<'a, T, I> {}
 
 #[cfg(all(test, feature = "std"))]
 mod test {
