@@ -1,6 +1,7 @@
 use core::cmp::{Eq, PartialEq};
 use core::convert::TryInto;
 use core::fmt;
+use core::hash::Hash;
 use core::marker::PhantomData;
 use core::mem::replace;
 use core::ops;
@@ -16,7 +17,7 @@ use crate::iter::{Drain, IntoIter, Iter, IterMut};
 /// Container that can have elements inserted into it and removed from it.
 ///
 /// Indices use the [`Index`] type, created by inserting values with [`Arena::insert`].
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Arena<T, I = ()> {
     storage: Vec<Entry<T>>,
     len: u32,
@@ -26,8 +27,7 @@ pub struct Arena<T, I = ()> {
 
 /// Index type for [`Arena`] that has a generation attached to it.
 #[derive(Eq, Hash, PartialOrd, Ord)]
-pub struct Index<I = ()>
-{
+pub struct Index<I = ()> {
     pub(crate) slot: u32,
     pub(crate) generation: Generation,
     pub(crate) _marker: PhantomData<I>,
@@ -35,12 +35,13 @@ pub struct Index<I = ()>
 
 impl<I> PartialEq for Index<I> {
     fn eq(&self, other: &Self) -> bool {
-        self.slot == other.slot && self.generation == other.generation && self._marker == other._marker
+        self.slot == other.slot
+            && self.generation == other.generation
+            && self._marker == other._marker
     }
 }
 
-impl<I> Clone for Index<I>
-{
+impl<I> Clone for Index<I> {
     fn clone(&self) -> Self {
         Self {
             slot: self.slot,
@@ -52,9 +53,7 @@ impl<I> Clone for Index<I>
 
 impl<I> Copy for Index<I> {}
 
-impl<I> fmt::Debug for Index<I>
-
-{
+impl<I> fmt::Debug for Index<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Index")
             .field("slot", &self.slot)
@@ -64,8 +63,7 @@ impl<I> fmt::Debug for Index<I>
     }
 }
 
-impl<I> Index<I>
-{
+impl<I> Index<I> {
     /// Convert this `Index` to an equivalent `u64` representation. Mostly
     /// useful for passing to code outside of Rust.
     #[allow(clippy::integer_arithmetic)]
@@ -115,7 +113,7 @@ impl<I> Index<I>
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) enum Entry<T> {
     Occupied(OccupiedEntry<T>),
     Empty(EmptyEntry),
@@ -147,20 +145,19 @@ impl<T> Entry<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(crate) struct OccupiedEntry<T> {
     pub(crate) generation: Generation,
     pub(crate) value: T,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub(crate) struct EmptyEntry {
     pub(crate) generation: Generation,
     pub(crate) next_free: Option<FreePointer>,
 }
 
-impl<T, I> Arena<T, I>
-{
+impl<T, I> Arena<T, I> {
     /// Construct an empty arena.
     pub const fn new() -> Self {
         Self {
@@ -690,15 +687,13 @@ impl<T, I> Arena<T, I>
     }
 }
 
-impl<T, I> Default for Arena<T, I>
-{
+impl<T, I> Default for Arena<T, I> {
     fn default() -> Self {
         Arena::new()
     }
 }
 
-impl<T, I> IntoIterator for Arena<T, I>
-{
+impl<T, I> IntoIterator for Arena<T, I> {
     type Item = (Index<I>, T);
     type IntoIter = IntoIter<T, I>;
 
@@ -710,8 +705,7 @@ impl<T, I> IntoIterator for Arena<T, I>
     }
 }
 
-impl<'a, T, I> IntoIterator for &'a Arena<T, I>
-{
+impl<'a, T, I> IntoIterator for &'a Arena<T, I> {
     type Item = (Index<I>, &'a T);
     type IntoIter = Iter<'a, T, I>;
 
@@ -720,8 +714,7 @@ impl<'a, T, I> IntoIterator for &'a Arena<T, I>
     }
 }
 
-impl<'a, T, I> IntoIterator for &'a mut Arena<T, I>
-{
+impl<'a, T, I> IntoIterator for &'a mut Arena<T, I> {
     type Item = (Index<I>, &'a mut T);
     type IntoIter = IterMut<'a, T, I>;
 
@@ -730,8 +723,7 @@ impl<'a, T, I> IntoIterator for &'a mut Arena<T, I>
     }
 }
 
-impl<T, I> ops::Index<Index<I>> for Arena<T, I>
-{
+impl<T, I> ops::Index<Index<I>> for Arena<T, I> {
     type Output = T;
 
     fn index(&self, index: Index<I>) -> &Self::Output {
@@ -740,8 +732,7 @@ impl<T, I> ops::Index<Index<I>> for Arena<T, I>
     }
 }
 
-impl<T, I> ops::IndexMut<Index<I>> for Arena<T, I>
-{
+impl<T, I> ops::IndexMut<Index<I>> for Arena<T, I> {
     fn index_mut(&mut self, index: Index<I>) -> &mut Self::Output {
         self.get_mut(index)
             .unwrap_or_else(|| panic!("No entry at index {:?}", index))
