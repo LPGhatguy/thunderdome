@@ -26,11 +26,19 @@ pub struct Arena<T, I = ()> {
 }
 
 /// Index type for [`Arena`] that has a generation attached to it.
-#[derive(Eq, Hash, PartialOrd, Ord)]
+#[derive(Eq, PartialOrd, Ord)]
 pub struct Index<I = ()> {
     pub(crate) slot: u32,
     pub(crate) generation: Generation,
     pub(crate) _marker: PhantomData<I>,
+}
+
+impl<I> Hash for Index<I> {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.slot.hash(state);
+        self.generation.hash(state);
+        self._marker.hash(state);
+    }
 }
 
 impl<I> PartialEq for Index<I> {
