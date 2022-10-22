@@ -1,4 +1,3 @@
-use core::cmp::Eq;
 use core::iter::{ExactSizeIterator, FusedIterator};
 use core::slice;
 
