@@ -1,3 +1,4 @@
+use core::cmp::Ordering;
 use core::convert::TryInto;
 use core::mem::replace;
 use core::ops;
@@ -386,30 +387,63 @@ impl<T> Arena<T> {
     /// This function panics when the two indices are equal (having the same
     /// slot number and generation).
     pub fn get2_mut(&mut self, index1: Index, index2: Index) -> (Option<&mut T>, Option<&mut T>) {
+        fn maybe_get_inner<T>(
+            entry: Option<&mut Entry<T>>,
+            generation: Generation,
+        ) -> Option<&mut T> {
+            if let Some(Entry::Occupied(occupied)) = entry {
+                if occupied.generation == generation {
+                    return Some(&mut occupied.value);
+                }
+            }
+
+            None
+        }
+
         if index1 == index2 {
             panic!("Arena::get2_mut is called with two identical indices");
         }
 
-        // SAFETY NOTES:
-        //
-        // - If `index1` and `index2` have different slot number, `item1` and
-        //   `item2` would point to different elements.
-        // - If `index1` and `index2` have the same slot number, only one could
-        //   be valid because there is only one valid generation number.
-        // - If `index1` and `index2` have the same slot number and the same
-        //   generation, this function will panic.
-        //
-        // Since `Vec::get_mut` will not reallocate, we can safely cast
-        // a mutable reference to an element to a pointer and back and remain
-        // valid.
+        let slot1 = index1.slot as usize;
+        let slot2 = index2.slot as usize;
+        let generation1 = index1.generation;
+        let generation2 = index2.generation;
 
-        let item1_ptr = self.get_mut(index1).map(|x| x as *mut T);
-        let item2_ptr = self.get_mut(index2).map(|x| x as *mut T);
-
-        let item1 = unsafe { item1_ptr.map(|x| &mut *x) };
-        let item2 = unsafe { item2_ptr.map(|x| &mut *x) };
-
-        (item1, item2)
+        // If the slots land on different entries then we can mutable split the underlying storage
+        // to get the desired entry in each of those portions
+        match slot1.cmp(&slot2) {
+            // Same entry with a different generation. See if either of them match
+            Ordering::Equal => match self.storage.get_mut(slot1) {
+                Some(Entry::Occupied(occupied)) => {
+                    if generation1 == occupied.generation {
+                        (Some(&mut occupied.value), None)
+                    } else if generation2 == occupied.generation {
+                        (None, Some(&mut occupied.value))
+                    } else {
+                        (None, None)
+                    }
+                }
+                _ => (None, None),
+            },
+            Ordering::Greater => {
+                let (slice1, slice2) = self.storage.split_at_mut(slot1);
+                let entry1 = slice2.get_mut(0);
+                let entry2 = slice1.get_mut(slot2);
+                (
+                    maybe_get_inner(entry1, generation1),
+                    maybe_get_inner(entry2, generation2),
+                )
+            }
+            Ordering::Less => {
+                let (slice1, slice2) = self.storage.split_at_mut(slot2);
+                let entry1 = slice1.get_mut(slot1);
+                let entry2 = slice2.get_mut(0);
+                (
+                    maybe_get_inner(entry1, generation1),
+                    maybe_get_inner(entry2, generation2),
+                )
+            }
+        }
     }
 
     /// Remove the value contained at the given index from the arena, returning
