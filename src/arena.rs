@@ -89,9 +89,11 @@ impl<T> Entry<T> {
         }
     }
 
-    fn get_value_mut(&mut self) -> Option<&mut T> {
+    fn get_value_mut(&mut self, generation: Generation) -> Option<&mut T> {
         match self {
-            Entry::Occupied(occupied) => Some(&mut occupied.value),
+            Entry::Occupied(occupied) if occupied.generation == generation => {
+                Some(&mut occupied.value)
+            }
             Entry::Empty(_) => None,
         }
     }
@@ -378,9 +380,7 @@ impl<T> Arena<T> {
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
         match self.storage.get_mut(index.slot as usize) {
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
-                Some(&mut occupied.value)
-            }
+            Some(entry) => entry.get_value_mut(index.generation),
             _ => None,
         }
     }
@@ -414,8 +414,8 @@ impl<T> Arena<T> {
                 let entry1 = slice2.get_mut(0);
                 let entry2 = slice1.get_mut(index2.slot as usize);
                 (
-                    entry1.and_then(Entry::get_value_mut),
-                    entry2.and_then(Entry::get_value_mut),
+                    entry1.and_then(|e| e.get_value_mut(index1.generation)),
+                    entry2.and_then(|e| e.get_value_mut(index2.generation)),
                 )
             }
             Ordering::Less => {
@@ -423,8 +423,8 @@ impl<T> Arena<T> {
                 let entry1 = slice1.get_mut(index1.slot as usize);
                 let entry2 = slice2.get_mut(0);
                 (
-                    entry1.and_then(Entry::get_value_mut),
-                    entry2.and_then(Entry::get_value_mut),
+                    entry1.and_then(|e| e.get_value_mut(index1.generation)),
+                    entry2.and_then(|e| e.get_value_mut(index2.generation)),
                 )
             }
         }
