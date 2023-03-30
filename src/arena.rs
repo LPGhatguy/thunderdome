@@ -378,7 +378,9 @@ impl<T> Arena<T> {
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
         match self.storage.get_mut(index.slot as usize) {
-            Some(entry) => entry.get_value_mut(),
+            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
+                Some(&mut occupied.value)
+            }
             _ => None,
         }
     }
