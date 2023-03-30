@@ -89,6 +89,13 @@ impl<T> Entry<T> {
         }
     }
 
+    fn get_value_mut(&mut self) -> Option<&mut T> {
+        match self {
+            Entry::Occupied(occupied) => Some(&mut occupied.value),
+            Entry::Empty(_) => None,
+        }
+    }
+
     /// If the entry is empty, a reference to it.
     fn as_empty(&self) -> Option<&EmptyEntry> {
         match self {
@@ -371,9 +378,7 @@ impl<T> Arena<T> {
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
         match self.storage.get_mut(index.slot as usize) {
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
-                Some(&mut occupied.value)
-            }
+            Some(entry) => entry.get_value_mut(),
             _ => None,
         }
     }
@@ -387,60 +392,37 @@ impl<T> Arena<T> {
     /// This function panics when the two indices are equal (having the same
     /// slot number and generation).
     pub fn get2_mut(&mut self, index1: Index, index2: Index) -> (Option<&mut T>, Option<&mut T>) {
-        fn maybe_get_inner<T>(
-            entry: Option<&mut Entry<T>>,
-            generation: Generation,
-        ) -> Option<&mut T> {
-            if let Some(Entry::Occupied(occupied)) = entry {
-                if occupied.generation == generation {
-                    return Some(&mut occupied.value);
-                }
-            }
-
-            None
-        }
-
         if index1 == index2 {
             panic!("Arena::get2_mut is called with two identical indices");
         }
 
-        let slot1 = index1.slot as usize;
-        let slot2 = index2.slot as usize;
-        let generation1 = index1.generation;
-        let generation2 = index2.generation;
-
         // If the slots land on different entries then we can mutable split the underlying storage
         // to get the desired entry in each of those portions
-        match slot1.cmp(&slot2) {
+        match index1.slot.cmp(&index2.slot) {
             // Same entry with a different generation. See if either of them match
-            Ordering::Equal => match self.storage.get_mut(slot1) {
-                Some(Entry::Occupied(occupied)) => {
-                    if generation1 == occupied.generation {
-                        (Some(&mut occupied.value), None)
-                    } else if generation2 == occupied.generation {
-                        (None, Some(&mut occupied.value))
-                    } else {
-                        (None, None)
-                    }
+            Ordering::Equal => {
+                if self.get(index1).is_some() {
+                    (self.get_mut(index1), None)
+                } else {
+                    (None, self.get_mut(index2))
                 }
-                _ => (None, None),
-            },
+            }
             Ordering::Greater => {
-                let (slice1, slice2) = self.storage.split_at_mut(slot1);
+                let (slice1, slice2) = self.storage.split_at_mut(index1.slot as usize);
                 let entry1 = slice2.get_mut(0);
-                let entry2 = slice1.get_mut(slot2);
+                let entry2 = slice1.get_mut(index2.slot as usize);
                 (
-                    maybe_get_inner(entry1, generation1),
-                    maybe_get_inner(entry2, generation2),
+                    entry1.and_then(Entry::get_value_mut),
+                    entry2.and_then(Entry::get_value_mut),
                 )
             }
             Ordering::Less => {
-                let (slice1, slice2) = self.storage.split_at_mut(slot2);
-                let entry1 = slice1.get_mut(slot1);
+                let (slice1, slice2) = self.storage.split_at_mut(index2.slot as usize);
+                let entry1 = slice1.get_mut(index1.slot as usize);
                 let entry2 = slice2.get_mut(0);
                 (
-                    maybe_get_inner(entry1, generation1),
-                    maybe_get_inner(entry2, generation2),
+                    entry1.and_then(Entry::get_value_mut),
+                    entry2.and_then(Entry::get_value_mut),
                 )
             }
         }
