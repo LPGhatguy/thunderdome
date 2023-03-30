@@ -94,7 +94,7 @@ impl<T> Entry<T> {
             Entry::Occupied(occupied) if occupied.generation == generation => {
                 Some(&mut occupied.value)
             }
-            Entry::Empty(_) => None,
+            _ => None,
         }
     }
 
