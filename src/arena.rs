@@ -88,6 +88,15 @@ impl<T> Entry<T> {
         }
     }
 
+    fn get_value_mut(&mut self, generation: Generation) -> Option<&mut T> {
+        match self {
+            Entry::Occupied(occupied) if occupied.generation == generation => {
+                Some(&mut occupied.value)
+            }
+            _ => None,
+        }
+    }
+
     /// If the entry is empty, a reference to it.
     fn as_empty(&self) -> Option<&EmptyEntry> {
         match self {
@@ -370,9 +379,7 @@ impl<T> Arena<T> {
     /// returning `None` if the index is not contained in the arena.
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
         match self.storage.get_mut(index.slot as usize) {
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => {
-                Some(&mut occupied.value)
-            }
+            Some(entry) => entry.get_value_mut(index.generation),
             _ => None,
         }
     }
@@ -390,26 +397,32 @@ impl<T> Arena<T> {
             panic!("Arena::get2_mut is called with two identical indices");
         }
 
-        // SAFETY NOTES:
-        //
-        // - If `index1` and `index2` have different slot number, `item1` and
-        //   `item2` would point to different elements.
-        // - If `index1` and `index2` have the same slot number, only one could
-        //   be valid because there is only one valid generation number.
-        // - If `index1` and `index2` have the same slot number and the same
-        //   generation, this function will panic.
-        //
-        // Since `Vec::get_mut` will not reallocate, we can safely cast
-        // a mutable reference to an element to a pointer and back and remain
-        // valid.
+        // Same entry with a different generation. We'll prefer the first value
+        // that matches.
+        if index1.slot == index2.slot {
+            // The borrow checker forces us to index into our storage twice here
+            // due to `return` extending borrows.
+            if self.get(index1).is_some() {
+                return (self.get_mut(index1), None);
+            } else {
+                return (None, self.get_mut(index2));
+            }
+        }
 
-        let item1_ptr = self.get_mut(index1).map(|x| x as *mut T);
-        let item2_ptr = self.get_mut(index2).map(|x| x as *mut T);
+        // If the indices point to different slots, we can mutably split the
+        // underlying storage to get the desired entry in each slice.
+        let (entry1, entry2) = if index1.slot > index2.slot {
+            let (slice1, slice2) = self.storage.split_at_mut(index1.slot as usize);
+            (slice2.get_mut(0), slice1.get_mut(index2.slot as usize))
+        } else {
+            let (slice1, slice2) = self.storage.split_at_mut(index2.slot as usize);
+            (slice1.get_mut(index1.slot as usize), slice2.get_mut(0))
+        };
 
-        let item1 = unsafe { item1_ptr.map(|x| &mut *x) };
-        let item2 = unsafe { item2_ptr.map(|x| &mut *x) };
-
-        (item1, item2)
+        (
+            entry1.and_then(|e| e.get_value_mut(index1.generation)),
+            entry2.and_then(|e| e.get_value_mut(index2.generation)),
+        )
     }
 
     /// Remove the value contained at the given index from the arena, returning
