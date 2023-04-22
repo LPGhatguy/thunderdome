@@ -1,17 +1,20 @@
 use core::iter::{ExactSizeIterator, FusedIterator};
+use core::marker::PhantomData;
 use core::slice;
 
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter`](crate::Arena::iter).
-pub struct Iter<'a, T> {
+pub struct Iter<'a, T, I = ()> {
     pub(crate) len: u32,
     pub(crate) slot: u32,
     pub(crate) inner: slice::Iter<'a, Entry<T>>,
+    pub(crate) _market: PhantomData<I>,
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = (Index, &'a T);
+impl<'a, T, I> Iterator for Iter<'a, T, I>
+{
+    type Item = (Index<I>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -36,6 +39,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
                     let index = Index {
                         slot,
                         generation: occupied.generation,
+                        _marker: PhantomData,
                     };
 
                     return Some((index, &occupied.value));
@@ -49,8 +53,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for Iter<'a, T> {}
-impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
+impl<'a, T, I> FusedIterator for Iter<'a, T, I> {}
+impl<'a, T, I> ExactSizeIterator for Iter<'a, T, I> {}
 
 #[cfg(all(test, feature = "std"))]
 mod test {
@@ -60,7 +64,7 @@ mod test {
 
     #[test]
     fn iter() {
-        let mut arena = Arena::with_capacity(2);
+        let mut arena: Arena<u32> = Arena::with_capacity(2);
         let one = arena.insert(1);
         let two = arena.insert(2);
 

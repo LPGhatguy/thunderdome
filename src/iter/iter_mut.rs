@@ -4,14 +4,17 @@ use core::slice;
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter_mut`](crate::Arena::iter_mut).
-pub struct IterMut<'a, T> {
+pub struct IterMut<'a, T, I = ()>
+{
     pub(crate) len: u32,
     pub(crate) slot: u32,
     pub(crate) inner: slice::IterMut<'a, Entry<T>>,
+    pub(crate) _marker: core::marker::PhantomData<I>,
 }
 
-impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = (Index, &'a mut T);
+impl<'a, T, I> Iterator for IterMut<'a, T, I>
+{
+    type Item = (Index<I>, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -36,6 +39,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
                     let index = Index {
                         slot,
                         generation: occupied.generation,
+                        _marker: core::marker::PhantomData,
                     };
 
                     return Some((index, &mut occupied.value));
@@ -49,8 +53,8 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for IterMut<'a, T> {}
-impl<'a, T> ExactSizeIterator for IterMut<'a, T> {}
+impl<'a, T, I> FusedIterator for IterMut<'a, T, I> {}
+impl<'a, T, I> ExactSizeIterator for IterMut<'a, T, I> {}
 
 #[cfg(all(test, feature = "std"))]
 mod test {
@@ -60,7 +64,7 @@ mod test {
 
     #[test]
     fn iter_mut() {
-        let mut arena = Arena::with_capacity(2);
+        let mut arena: Arena<u32> = Arena::with_capacity(2);
         let one = arena.insert(1);
         let two = arena.insert(2);
 
