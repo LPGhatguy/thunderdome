@@ -28,6 +28,15 @@ pub struct Index {
 }
 
 impl Index {
+    /// Represents an `Index` that is unlikely to be in use. This is useful for
+    /// programs that want to do two-phase initialization in safe Rust. Avoid
+    /// using this value to represent the absence of an `Index`: prefer
+    /// `Option<Index>`.
+    pub const DANGLING: Self = Self {
+        slot: u32::MAX,
+        generation: Generation::DANGLING,
+    };
+
     /// Convert this `Index` to an equivalent `u64` representation. Mostly
     /// useful for passing to code outside of Rust.
     #[allow(clippy::integer_arithmetic)]
