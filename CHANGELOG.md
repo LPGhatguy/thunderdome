@@ -2,6 +2,13 @@
 
 ## Unreleased Changes
 
+## [0.6.1] - 2023-06-24
+* Added `Index::DANGLING`.
+* Replaced unsafe code in `get2_mut` with safe equivalent. ([#42])
+
+[#42]: https://github.com/LPGhatguy/thunderdome/pull/42
+[0.6.1]: https://github.com/LPGhatguy/thunderdome/releases/tag/v0.6.1
+
 ## [0.6.0] - 2022-10-18
 * Raised MSRV to 1.47.0.
 * Many functions are now `const` ([#38])
