@@ -166,6 +166,13 @@ impl<T> Arena<T> {
         self.storage.capacity()
     }
 
+    /// Reserve capacity for at least `additional` more elements to be inserted
+    pub fn reserve(&mut self, additional: usize) {
+        let currently_free = self.storage.len().saturating_sub(self.len as usize);
+        let to_reserve = additional.saturating_sub(currently_free);
+        self.storage.reserve(to_reserve);
+    }
+
     /// Returns whether the arena is empty.
     pub const fn is_empty(&self) -> bool {
         self.len == 0
