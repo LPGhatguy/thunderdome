@@ -15,7 +15,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.len == 0 || self.slot > self.len {
+            if self.len == 0 {
                 return None;
             }
 
@@ -50,25 +50,20 @@ impl<'a, T> Iterator for Iter<'a, T> {
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
-            if self.len == 0 || self.slot > self.len {
+            if self.len == 0 {
                 return None;
             }
 
-            let slot = self
-                .slot
-                .checked_add(self.len.checked_sub(1).unwrap_or_else(|| {
-                    unreachable!("Underflowed u32 trying to iterate Arena in reverse")
-                }))
-                .unwrap_or_else(|| {
-                    unreachable!("Overflowed u32 trying to iterate Arena in reverse")
-                });
-
             match self.inner.next_back()? {
-                Entry::Empty(_) => (),
-                Entry::Occupied(occupied) => {
+                (_, Entry::Empty(_)) => (),
+                (slot, Entry::Occupied(occupied)) => {
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| {
                         unreachable!("Underflowed u32 trying to iterate Arena in reverse")
                     });
+
+                    let slot = slot
+                        .try_into()
+                        .unwrap_or_else(|_| unreachable!("Overflowed u32 trying to iterate Arena"));
 
                     let index = Index {
                         slot,
