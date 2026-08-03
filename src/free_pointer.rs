@@ -48,6 +48,6 @@ mod test {
     #[test]
     #[should_panic(expected = "u32 overflowed calculating free pointer from u32")]
     fn panic_on_overflow() {
-        let _ = FreePointer::from_slot(core::u32::MAX);
+        let _ = FreePointer::from_slot(u32::MAX);
     }
 }
