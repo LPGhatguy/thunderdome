@@ -1,6 +1,9 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Implemented `DoubleEndedIterator` for all iterator types. ([#43])
+
+[#43]: https://github.com/LPGhatguy/thunderdome/pull/43
 
 ## [0.6.1] - 2023-06-24
 * Added `Index::DANGLING`.
