@@ -1,4 +1,5 @@
-use core::iter::{ExactSizeIterator, FusedIterator};
+use core::convert::TryInto;
+use core::iter::{Enumerate, ExactSizeIterator, FusedIterator};
 use core::slice;
 
 use crate::arena::{Entry, Index};
@@ -6,8 +7,7 @@ use crate::arena::{Entry, Index};
 /// See [`Arena::iter`](crate::Arena::iter).
 pub struct Iter<'a, T> {
     pub(crate) len: u32,
-    pub(crate) slot: u32,
-    pub(crate) inner: slice::Iter<'a, Entry<T>>,
+    pub(crate) inner: Enumerate<slice::Iter<'a, Entry<T>>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -19,19 +19,17 @@ impl<'a, T> Iterator for Iter<'a, T> {
                 return None;
             }
 
-            let slot = self.slot;
-            self.slot = self
-                .slot
-                .checked_add(1)
-                .unwrap_or_else(|| unreachable!("Overflowed u32 trying to iterate Arena"));
-
             match self.inner.next()? {
-                Entry::Empty(_) => (),
-                Entry::Occupied(occupied) => {
+                (_, Entry::Empty(_)) => (),
+                (slot, Entry::Occupied(occupied)) => {
                     self.len = self
                         .len
                         .checked_sub(1)
                         .unwrap_or_else(|| unreachable!("Underflowed u32 trying to iterate Arena"));
+
+                    let slot = slot
+                        .try_into()
+                        .unwrap_or_else(|_| unreachable!("Overflowed u32 trying to iterate Arena"));
 
                     let index = Index {
                         slot,
