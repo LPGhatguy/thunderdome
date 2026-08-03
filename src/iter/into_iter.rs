@@ -1,11 +1,18 @@
-use core::iter::{ExactSizeIterator, FusedIterator};
+use core::convert::TryInto;
+use core::iter::{Enumerate, ExactSizeIterator, FusedIterator};
 
-use crate::arena::{Arena, Index};
+#[cfg(feature = "std")]
+use std::vec;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec;
+
+use crate::arena::{Entry, Index};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
 pub struct IntoIter<T> {
-    pub(crate) arena: Arena<T>,
-    pub(crate) slot: u32,
+    pub(crate) len: u32,
+    pub(crate) inner: Enumerate<vec::IntoIter<Entry<T>>>,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -13,33 +20,35 @@ impl<T> Iterator for IntoIter<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            // If there are no entries remaining in the arena, we should always
-            // return None. Using this check instead of comparing with the
-            // arena's size allows us to skip any trailing empty entries.
-            if self.arena.is_empty() {
+            if self.len == 0 {
                 return None;
             }
 
-            // slot may overflow if the arena's underlying storage contains more
-            // than 2^32 elements, but its internal length value was not
-            // changed, as it overflowing would panic before reaching this code.
-            let slot = self.slot;
-            self.slot = self
-                .slot
-                .checked_add(1)
-                .unwrap_or_else(|| panic!("Overflowed u32 trying to into_iter Arena"));
+            match self.inner.next()? {
+                (_, Entry::Empty(_)) => (),
+                (slot, Entry::Occupied(occupied)) => {
+                    self.len = self
+                        .len
+                        .checked_sub(1)
+                        .unwrap_or_else(|| unreachable!("Underflowed u32 trying to iterate Arena"));
 
-            // If this entry is occupied, this method will mark it as an empty.
-            // Otherwise, we'll continue looping until we've removed all
-            // occupied entries from the arena.
-            if let Some((index, value)) = self.arena.remove_by_slot(slot) {
-                return Some((index, value));
+                    let slot = slot
+                        .try_into()
+                        .unwrap_or_else(|_| unreachable!("Overflowed u32 trying to iterate Arena"));
+
+                    let index = Index {
+                        slot,
+                        generation: occupied.generation,
+                    };
+
+                    return Some((index, occupied.value));
+                }
             }
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.arena.len(), Some(self.arena.len()))
+        (self.len as usize, Some(self.len as usize))
     }
 }
 

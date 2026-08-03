@@ -647,8 +647,8 @@ impl<T> IntoIterator for Arena<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         IntoIter {
-            arena: self,
-            slot: 0,
+            len: self.len,
+            inner: self.storage.into_iter().enumerate(),
         }
     }
 }
