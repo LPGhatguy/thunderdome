@@ -15,12 +15,12 @@ impl Generation {
     /// Represents a generation that is unlikely to be used. This is useful for
     /// programs that want to do two-phase initialization in safe Rust.
     // This is safe because the maximum value of a u32 is not zero.
-    pub(crate) const DANGLING: Self = unsafe { Generation(NonZeroU32::new_unchecked(u32::MAX)) };
+    pub(crate) const DANGLING: Self = const { Generation(NonZeroU32::new(u32::MAX).unwrap()) };
 
     #[must_use]
     pub(crate) fn first() -> Self {
         // This is safe because 1 is not zero.
-        Generation(unsafe { NonZeroU32::new_unchecked(1) })
+        Generation(const { NonZeroU32::new(1).unwrap() })
     }
 
     #[must_use]
