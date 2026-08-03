@@ -1,11 +1,18 @@
-use core::iter::{ExactSizeIterator, FusedIterator};
+use core::convert::TryInto;
+use core::iter::{Enumerate, ExactSizeIterator, FusedIterator};
 
-use crate::arena::{Arena, Index};
+#[cfg(feature = "std")]
+use std::vec;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec;
+
+use crate::arena::{Entry, Index};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
 pub struct IntoIter<T> {
-    pub(crate) arena: Arena<T>,
-    pub(crate) slot: u32,
+    pub(crate) len: u32,
+    pub(crate) inner: Enumerate<vec::IntoIter<Entry<T>>>,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -13,33 +20,65 @@ impl<T> Iterator for IntoIter<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            // If there are no entries remaining in the arena, we should always
-            // return None. Using this check instead of comparing with the
-            // arena's size allows us to skip any trailing empty entries.
-            if self.arena.is_empty() {
+            if self.len == 0 {
                 return None;
             }
 
-            // slot may overflow if the arena's underlying storage contains more
-            // than 2^32 elements, but its internal length value was not
-            // changed, as it overflowing would panic before reaching this code.
-            let slot = self.slot;
-            self.slot = self
-                .slot
-                .checked_add(1)
-                .unwrap_or_else(|| panic!("Overflowed u32 trying to into_iter Arena"));
+            match self.inner.next()? {
+                (_, Entry::Empty(_)) => (),
+                (slot, Entry::Occupied(occupied)) => {
+                    self.len = self
+                        .len
+                        .checked_sub(1)
+                        .unwrap_or_else(|| unreachable!("Underflowed u32 trying to iterate Arena"));
 
-            // If this entry is occupied, this method will mark it as an empty.
-            // Otherwise, we'll continue looping until we've removed all
-            // occupied entries from the arena.
-            if let Some((index, value)) = self.arena.remove_by_slot(slot) {
-                return Some((index, value));
+                    let slot = slot
+                        .try_into()
+                        .unwrap_or_else(|_| unreachable!("Overflowed u32 trying to iterate Arena"));
+
+                    let index = Index {
+                        slot,
+                        generation: occupied.generation,
+                    };
+
+                    return Some((index, occupied.value));
+                }
             }
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.arena.len(), Some(self.arena.len()))
+        (self.len as usize, Some(self.len as usize))
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.len == 0 {
+                return None;
+            }
+
+            match self.inner.next_back()? {
+                (_, Entry::Empty(_)) => (),
+                (slot, Entry::Occupied(occupied)) => {
+                    self.len = self.len.checked_sub(1).unwrap_or_else(|| {
+                        unreachable!("Underflowed u32 trying to iterate Arena in reverse")
+                    });
+
+                    let slot = slot
+                        .try_into()
+                        .unwrap_or_else(|_| unreachable!("Overflowed u32 trying to iterate Arena"));
+
+                    let index = Index {
+                        slot,
+                        generation: occupied.generation,
+                    };
+
+                    return Some((index, occupied.value));
+                }
+            }
+        }
     }
 }
 
@@ -75,5 +114,63 @@ mod test {
         assert_eq!(pairs.len(), 2);
         assert!(pairs.contains(&(one, 1)));
         assert!(pairs.contains(&(two, 2)));
+    }
+
+    #[test]
+    fn iter_rev() {
+        let mut arena = Arena::with_capacity(2);
+        let one = arena.insert(1);
+        let two = arena.insert(2);
+
+        let mut pairs = HashSet::new();
+        let mut iter = arena.into_iter().rev();
+        assert_eq!(iter.size_hint(), (2, Some(2)));
+
+        pairs.insert(iter.next().unwrap());
+        assert_eq!(iter.size_hint(), (1, Some(1)));
+
+        pairs.insert(iter.next().unwrap());
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+
+        assert!(pairs.contains(&(two, 2)));
+        assert!(pairs.contains(&(one, 1)));
+    }
+
+    #[test]
+    fn iter_both_directions() {
+        let mut arena = Arena::with_capacity(2);
+        let one = arena.insert(1);
+        let two = arena.insert(2);
+        let three = arena.insert(3);
+        let four = arena.insert(4);
+
+        let mut pairs = HashSet::new();
+        let mut iter = arena.into_iter();
+        assert_eq!(iter.size_hint(), (4, Some(4)));
+
+        pairs.insert(iter.next().unwrap());
+        assert_eq!(iter.size_hint(), (3, Some(3)));
+
+        pairs.insert(iter.next_back().unwrap());
+        assert_eq!(iter.size_hint(), (2, Some(2)));
+
+        pairs.insert(iter.next_back().unwrap());
+        assert_eq!(iter.size_hint(), (1, Some(1)));
+
+        pairs.insert(iter.next().unwrap());
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+
+        assert_eq!(iter.next_back(), None);
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+
+        assert!(pairs.contains(&(one, 1)));
+        assert!(pairs.contains(&(two, 2)));
+        assert!(pairs.contains(&(three, 3)));
+        assert!(pairs.contains(&(four, 4)));
     }
 }
