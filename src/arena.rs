@@ -361,10 +361,9 @@ impl<T> Arena<T> {
 
     /// Returns true if the given index is valid for the arena.
     pub fn contains(&self, index: Index) -> bool {
-        match self.storage.get(index.slot as usize) {
-            Some(Entry::Occupied(occupied)) if occupied.generation == index.generation => true,
-            _ => false,
-        }
+        let entry = self.storage.get(index.slot as usize);
+
+        matches!(entry, Some(Entry::Occupied(occupied)) if occupied.generation == index.generation)
     }
 
     /// Checks to see whether a slot is occupied in the arena, and if it is,
