@@ -68,8 +68,8 @@ mod test {
 
     #[test]
     fn wrap_on_overflow() {
-        let max = Generation(NonZeroU32::new(core::u32::MAX).unwrap());
-        assert_eq!(max.0.get(), core::u32::MAX);
+        let max = Generation(NonZeroU32::new(u32::MAX).unwrap());
+        assert_eq!(max.0.get(), u32::MAX);
 
         let next = max.next();
         assert_eq!(next.0.get(), 1);
