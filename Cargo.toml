@@ -10,6 +10,7 @@ repository = "https://github.com/LPGhatguy/thunderdome"
 readme = "README.md"
 keywords = ["arena", "slab", "generational"]
 license = "MIT OR Apache-2.0"
+rust-version = "1.83.0"
 
 [features]
 default = ["std"]

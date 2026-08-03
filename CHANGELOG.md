@@ -1,6 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
+* Raised MSRV to 1.83.0.
 * Implemented `DoubleEndedIterator` for all iterator types. ([#43])
 
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
