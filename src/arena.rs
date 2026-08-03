@@ -39,7 +39,7 @@ impl Index {
 
     /// Convert this `Index` to an equivalent `u64` representation. Mostly
     /// useful for passing to code outside of Rust.
-    #[allow(clippy::integer_arithmetic)]
+    #[allow(clippy::arithmetic_side_effects)]
     pub const fn to_bits(self) -> u64 {
         // This is safe because a `u32` bit-shifted by 32 will still fit in a `u64`.
         ((self.generation.to_u32() as u64) << 32) | (self.slot as u64)
@@ -56,7 +56,7 @@ impl Index {
     /// semver-compatible versions of Thunderdome. That is, using
     /// `Index::to_bits` in 0.4.0 and `Index::from_bits` in 0.4.2 is guaranteed
     /// to work.
-    #[allow(clippy::integer_arithmetic)]
+    #[allow(clippy::arithmetic_side_effects)]
     pub const fn from_bits(bits: u64) -> Option<Self> {
         // By bit-shifting right by 32, we're undoing the left-shift in `to_bits`
         // thus this is okay by the same rationale.

@@ -73,10 +73,11 @@ will only require minor version bumps, but will need significant justification.
 // This crate is sensitive to integer overflow and wrapping behavior. As such,
 // we should usually use methods like `checked_add` and `checked_sub` instead
 // of the `Add` or `Sub` operators.
-#![deny(clippy::integer_arithmetic)]
-// TODO: Deny clippy::std_instead_of_core, clippy::std_instead_of_alloc and
-// clippy::alloc_instead_of_core when released.
+#![deny(clippy::arithmetic_side_effects)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), deny(clippy::std_instead_of_core))]
+#![cfg_attr(not(feature = "std"), deny(clippy::std_instead_of_alloc))]
+#![cfg_attr(not(feature = "std"), deny(clippy::alloc_instead_of_core))]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
