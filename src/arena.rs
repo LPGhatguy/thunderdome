@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 
 use crate::free_pointer::FreePointer;
 use crate::generation::Generation;
-use crate::iter::{Drain, IntoIter, Iter, IterMut, Values, ValuesMut};
+use crate::iter::{Drain, IntoIter, IntoValues, Iter, IterMut, Values, ValuesMut};
 
 /// Container that can have elements inserted into it and removed from it.
 ///
@@ -602,6 +602,15 @@ impl<T> Arena<T> {
     pub fn values_mut(&mut self) -> ValuesMut<'_, T> {
         ValuesMut {
             inner: self.iter_mut(),
+        }
+    }
+
+    /// Consume the arena and iterate over all values contained in it.
+    ///
+    /// Iteration order is not defined.
+    pub fn into_values(self) -> IntoValues<T> {
+        IntoValues {
+            inner: self.into_iter(),
         }
     }
 
