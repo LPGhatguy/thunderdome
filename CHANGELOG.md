@@ -4,6 +4,7 @@
 * Raised MSRV to 1.83.0.
 * Implemented `DoubleEndedIterator` for all iterator types. ([#43])
 * Added `Arena::values` for iterating over values without indexes.
+* Added `Arena::values_mut` for mutably iterating over values without indexes.
 
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
 
