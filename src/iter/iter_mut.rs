@@ -5,6 +5,7 @@ use core::slice;
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter_mut`](crate::Arena::iter_mut).
+#[derive(Debug)]
 pub struct IterMut<'a, T> {
     pub(crate) len: u32,
     pub(crate) inner: Enumerate<slice::IterMut<'a, Entry<T>>>,

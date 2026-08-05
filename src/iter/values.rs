@@ -3,6 +3,7 @@ use core::iter::{ExactSizeIterator, FusedIterator};
 use super::Iter;
 
 /// See [`Arena::values`](crate::Arena::values).
+#[derive(Clone, Debug)]
 pub struct Values<'a, T> {
     pub(crate) inner: Iter<'a, T>,
 }

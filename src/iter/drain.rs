@@ -3,6 +3,7 @@ use core::iter::{ExactSizeIterator, FusedIterator};
 use crate::arena::{Arena, Index};
 
 /// See [`Arena::drain`].
+#[derive(Debug)]
 pub struct Drain<'a, T> {
     pub(crate) arena: &'a mut Arena<T>,
     pub(crate) slot: u32,

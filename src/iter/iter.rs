@@ -5,6 +5,7 @@ use core::slice;
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter`](crate::Arena::iter).
+#[derive(Clone, Debug)]
 pub struct Iter<'a, T> {
     pub(crate) len: u32,
     pub(crate) inner: Enumerate<slice::Iter<'a, Entry<T>>>,

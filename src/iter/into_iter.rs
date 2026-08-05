@@ -10,6 +10,7 @@ use alloc::vec;
 use crate::arena::{Entry, Index};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
+#[derive(Clone, Debug)]
 pub struct IntoIter<T> {
     pub(crate) len: u32,
     pub(crate) inner: Enumerate<vec::IntoIter<Entry<T>>>,

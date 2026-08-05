@@ -6,6 +6,8 @@
 * Added `Arena::values` for iterating over values without indexes. ([#19])
 * Added `Arena::values_mut` for mutably iterating over values without indexes. ([#19])
 * Added `Arena::into_values` for consuming the arena and iterating over values. ([#19])
+* Derived `Debug` for all iterator types.
+* Derived `Clone` for `Iter`, `IntoIter`, `Values`, and `IntoValues` iterators.
 
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
 
