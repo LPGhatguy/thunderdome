@@ -86,6 +86,15 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
 impl<T> FusedIterator for IntoIter<T> {}
 impl<T> ExactSizeIterator for IntoIter<T> {}
 
+impl<T> Default for IntoIter<T> {
+    fn default() -> Self {
+        Self {
+            len: 0,
+            inner: vec::IntoIter::<Entry<T>>::default().enumerate(),
+        }
+    }
+}
+
 #[cfg(all(test, feature = "std"))]
 mod test {
     use crate::Arena;

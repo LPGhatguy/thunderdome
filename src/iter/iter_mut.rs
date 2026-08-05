@@ -81,6 +81,15 @@ impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
 impl<'a, T> FusedIterator for IterMut<'a, T> {}
 impl<'a, T> ExactSizeIterator for IterMut<'a, T> {}
 
+impl<T> Default for IterMut<'_, T> {
+    fn default() -> Self {
+        Self {
+            len: 0,
+            inner: slice::IterMut::<Entry<T>>::default().enumerate(),
+        }
+    }
+}
+
 #[cfg(all(test, feature = "std"))]
 mod test {
     use crate::Arena;
