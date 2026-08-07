@@ -10,6 +10,7 @@ use alloc::vec;
 use crate::arena::{Entry, Index};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
+#[derive(Clone, Debug)]
 pub struct IntoIter<T> {
     pub(crate) len: u32,
     pub(crate) inner: Enumerate<vec::IntoIter<Entry<T>>>,
@@ -84,6 +85,15 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
 
 impl<T> FusedIterator for IntoIter<T> {}
 impl<T> ExactSizeIterator for IntoIter<T> {}
+
+impl<T> Default for IntoIter<T> {
+    fn default() -> Self {
+        Self {
+            len: 0,
+            inner: vec::IntoIter::<Entry<T>>::default().enumerate(),
+        }
+    }
+}
 
 #[cfg(all(test, feature = "std"))]
 mod test {

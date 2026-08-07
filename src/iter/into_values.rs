@@ -3,6 +3,7 @@ use core::iter::{ExactSizeIterator, FusedIterator};
 use super::IntoIter;
 
 /// See [`Arena::into_values`](crate::Arena::into_values).
+#[derive(Clone, Debug, Default)]
 pub struct IntoValues<T> {
     pub(crate) inner: IntoIter<T>,
 }

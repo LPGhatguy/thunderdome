@@ -3,6 +3,7 @@ use core::iter::{ExactSizeIterator, FusedIterator};
 use super::IterMut;
 
 /// See [`Arena::values_mut`](crate::Arena::values_mut).
+#[derive(Debug, Default)]
 pub struct ValuesMut<'a, T> {
     pub(crate) inner: IterMut<'a, T>,
 }

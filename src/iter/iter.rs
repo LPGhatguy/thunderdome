@@ -5,6 +5,7 @@ use core::slice;
 use crate::arena::{Entry, Index};
 
 /// See [`Arena::iter`](crate::Arena::iter).
+#[derive(Clone, Debug)]
 pub struct Iter<'a, T> {
     pub(crate) len: u32,
     pub(crate) inner: Enumerate<slice::Iter<'a, Entry<T>>>,
@@ -79,6 +80,15 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
 
 impl<'a, T> FusedIterator for Iter<'a, T> {}
 impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
+
+impl<T> Default for Iter<'_, T> {
+    fn default() -> Self {
+        Self {
+            len: 0,
+            inner: slice::Iter::<Entry<T>>::default().enumerate(),
+        }
+    }
+}
 
 #[cfg(all(test, feature = "std"))]
 mod test {
