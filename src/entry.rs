@@ -1,3 +1,5 @@
+//! Entry API for Thunderdome.
+
 use core::fmt;
 
 use crate::arena::{Arena, Index};
@@ -212,5 +214,148 @@ impl<T> Arena<T> {
         } else {
             Entry::Vacant(VacantEntry { arena: self, index })
         }
+    }
+}
+
+#[cfg(all(test, feature = "std"))]
+mod test {
+    use super::Entry;
+    use crate::arena::{Arena, Index};
+    use crate::generation::Generation;
+
+    #[test]
+    fn occupied_get_modify_remove() {
+        let mut arena = Arena::new();
+        let index = arena.insert(10);
+
+        match arena.entry(index) {
+            Entry::Occupied(mut entry) => {
+                assert_eq!(entry.key(), &index);
+                assert_eq!(entry.get(), &10);
+
+                *entry.get_mut() = 20;
+                assert_eq!(entry.insert(30), 20);
+            }
+            Entry::Vacant(_) => panic!(),
+        }
+
+        assert_eq!(arena[index], 30);
+
+        // Now let's vacate back the slot under index.
+        match arena.entry(index) {
+            Entry::Occupied(entry) => {
+                assert_eq!(entry.remove(), 30);
+            }
+            Entry::Vacant(_) => panic!(),
+        }
+
+        assert!(!arena.contains(index));
+    }
+
+    #[test]
+    fn vacant_or_insert_on_empty_slot() {
+        let mut arena = Arena::new();
+        let index = arena.insert(1);
+        arena.remove(index);
+
+        let value = arena.entry(index).or_insert(5);
+        assert_eq!(*value, 5);
+        assert_eq!(arena[index], 5);
+    }
+
+    #[test]
+    fn vacant_or_insert_out_of_bounds() {
+        let mut arena = Arena::new();
+        let index = Index {
+            slot: 3,
+            generation: Generation::first(),
+        };
+
+        arena.entry(index).or_insert(42);
+        assert_eq!(arena[index], 42);
+        // `.len()` is not contiguous length, but number of occupied slots.
+        assert_eq!(arena.len(), 1);
+    }
+
+    #[test]
+    fn vacant_wrong_generation_displaces() {
+        let mut arena = Arena::new();
+        let first = arena.insert("first");
+        let invalidated = first;
+        let second = arena.invalidate(first).unwrap();
+
+        assert!(matches!(arena.entry(invalidated), Entry::Vacant(_)));
+        assert!(matches!(arena.entry(second), Entry::Occupied(_)));
+
+        // Entry API, just like `.insert_at()`, can resurrect an invalidated
+        // index.
+        arena.entry(invalidated).or_insert("resurrected");
+        assert_eq!(arena[invalidated], "resurrected");
+        assert!(!arena.contains(second));
+    }
+
+    #[test]
+    fn and_modify_then_or_insert() {
+        let mut arena = Arena::new();
+        let index = arena.insert(1);
+        arena.remove(index);
+
+        // Nothing exists on index, so += 10 is not done.
+        arena.entry(index).and_modify(|v| *v += 10).or_insert(5);
+        assert_eq!(arena[index], 5);
+
+        // Previous or_insert(5) filled a slot, so += 10 works now.
+        arena.entry(index).and_modify(|v| *v += 10).or_insert(5);
+        assert_eq!(arena[index], 15);
+    }
+
+    #[test]
+    fn or_default() {
+        let mut arena = Arena::new();
+        let index = arena.insert(1);
+        arena.remove(index);
+
+        arena.entry(index).or_default();
+        assert_eq!(arena[index], 0);
+    }
+
+    #[test]
+    fn or_insert_with_key() {
+        let mut arena = Arena::new();
+        let index = arena.insert(0);
+        arena.remove(index);
+
+        arena
+            .entry(index)
+            .or_insert_with_key(|key| key.slot() as i32 + 7);
+        assert_eq!(arena[index], index.slot() as i32 + 7);
+    }
+
+    #[test]
+    fn vacant_into_key() {
+        let mut arena = Arena::new();
+        let index = arena.insert(1);
+        arena.remove(index);
+
+        match arena.entry(index) {
+            Entry::Vacant(entry) => {
+                assert_eq!(entry.into_key(), index);
+            }
+            Entry::Occupied(_) => panic!("expected vacant"),
+        }
+    }
+
+    #[test]
+    fn occupied_into_mut() {
+        let mut arena = Arena::new();
+        let index = arena.insert(1);
+
+        let value: &mut i32 = match arena.entry(index) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(_) => panic!("expected occupied"),
+        };
+
+        *value = 9;
+        assert_eq!(arena[index], 9); // Mutable reference works.
     }
 }
