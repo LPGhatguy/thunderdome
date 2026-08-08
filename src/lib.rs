@@ -83,8 +83,10 @@ will only require minor version bumps, but will need significant justification.
 extern crate alloc;
 
 mod arena;
+pub mod entry;
 mod free_pointer;
 mod generation;
 pub mod iter;
 
 pub use crate::arena::{Arena, Index};
+pub use crate::entry::{Entry, OccupiedEntry, VacantEntry};
