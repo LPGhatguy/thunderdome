@@ -73,15 +73,12 @@ impl<'a, T> Entry<'a, T> {
     /// the default function.
     ///
     /// This method allows for generating key-derived values for insertion by
-    /// providing the default function a reference to the key that was moved
-    /// during the `.entry(key)` method call.
-    ///
-    /// The reference to the moved key is provided so that cloning or copying
-    /// the key is unnecessary, unlike with `.or_insert_with(|| ... )`.
+    /// providing the default function the key that was moved during the
+    /// `.entry(key)` method call.
     ///
     /// If this entry is vacant, this calls [`Arena::insert_at`] internally, so
     /// it is capable of "resurrecting" an old index.
-    pub fn or_insert_with_key<F: FnOnce(&Index) -> T>(self, default: F) -> &'a mut T {
+    pub fn or_insert_with_key<F: FnOnce(Index) -> T>(self, default: F) -> &'a mut T {
         match self {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
@@ -91,8 +88,8 @@ impl<'a, T> Entry<'a, T> {
         }
     }
 
-    /// Returns a reference to this entry's key.
-    pub fn key(&self) -> &Index {
+    /// Returns this entry's key.
+    pub fn key(&self) -> Index {
         match self {
             Entry::Occupied(entry) => entry.key(),
             Entry::Vacant(entry) => entry.key(),
@@ -127,22 +124,17 @@ impl<'a, T: Default> Entry<'a, T> {
 }
 
 impl<'a, T> VacantEntry<'a, T> {
-    /// Gets a reference to the key that would be used when inserting a value
-    /// through the `VacantEntry`.
-    pub fn key(&self) -> &Index {
-        &self.index
-    }
-
-    /// Take ownership of the key.
-    pub fn into_key(self) -> Index {
+    /// Gets the key that would be used when inserting a value through the
+    /// `VacantEntry`.
+    pub fn key(&self) -> Index {
         self.index
     }
 
     /// Sets the value of the entry with the `VacantEntry`'s key,
     /// and returns a mutable reference to it.
     ///
-    /// If this entry is vacant, this calls [`Arena::insert_at`] internally, so
-    /// it is capable of "resurrecting" an old index.
+    /// This calls [`Arena::insert_at`] internally, so it is capable of
+    /// "resurrecting" an old index.
     pub fn insert(self, value: T) -> &'a mut T {
         self.arena.insert_at(self.index, value);
         self.arena
@@ -152,9 +144,9 @@ impl<'a, T> VacantEntry<'a, T> {
 }
 
 impl<'a, T> OccupiedEntry<'a, T> {
-    /// Gets a reference to the key in the entry.
-    pub fn key(&self) -> &Index {
-        &self.index
+    /// Gets the key in the entry.
+    pub fn key(&self) -> Index {
+        self.index
     }
 
     /// Gets a reference to the value in the entry.
@@ -230,7 +222,7 @@ mod test {
 
         match arena.entry(index) {
             Entry::Occupied(mut entry) => {
-                assert_eq!(entry.key(), &index);
+                assert_eq!(entry.key(), index);
                 assert_eq!(entry.get(), &10);
 
                 *entry.get_mut() = 20;
@@ -332,14 +324,14 @@ mod test {
     }
 
     #[test]
-    fn vacant_into_key() {
+    fn vacant_key() {
         let mut arena = Arena::new();
         let index = arena.insert(1);
         arena.remove(index);
 
         match arena.entry(index) {
             Entry::Vacant(entry) => {
-                assert_eq!(entry.into_key(), index);
+                assert_eq!(entry.key(), index);
             }
             Entry::Occupied(_) => panic!("expected vacant"),
         }

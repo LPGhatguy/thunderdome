@@ -246,7 +246,7 @@ impl<T> Arena<T> {
             next_fp = self
                 .storage
                 .get(next_fp.slot() as usize)
-                .expect("Empty entry not in storage!")
+                .expect("Empty slot not in storage!")
                 .as_empty()
                 .expect("Slot in free list not actually empty!")
                 .next_free
