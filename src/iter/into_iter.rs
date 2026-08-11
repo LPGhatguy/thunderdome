@@ -7,13 +7,13 @@ use std::vec;
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 
-use crate::arena::{Entry, Index};
+use crate::arena::{Index, Slot};
 
 /// Iterator typed used when an Arena is turned [`IntoIterator`].
 #[derive(Clone, Debug)]
 pub struct IntoIter<T> {
     pub(crate) len: u32,
-    pub(crate) inner: Enumerate<vec::IntoIter<Entry<T>>>,
+    pub(crate) inner: Enumerate<vec::IntoIter<Slot<T>>>,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -26,8 +26,8 @@ impl<T> Iterator for IntoIter<T> {
             }
 
             match self.inner.next()? {
-                (_, Entry::Empty(_)) => (),
-                (slot, Entry::Occupied(occupied)) => {
+                (_, Slot::Empty(_)) => (),
+                (slot, Slot::Occupied(occupied)) => {
                     self.len = self
                         .len
                         .checked_sub(1)
@@ -61,8 +61,8 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
             }
 
             match self.inner.next_back()? {
-                (_, Entry::Empty(_)) => (),
-                (slot, Entry::Occupied(occupied)) => {
+                (_, Slot::Empty(_)) => (),
+                (slot, Slot::Occupied(occupied)) => {
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| {
                         unreachable!("Underflowed u32 trying to iterate Arena in reverse")
                     });
@@ -90,7 +90,7 @@ impl<T> Default for IntoIter<T> {
     fn default() -> Self {
         Self {
             len: 0,
-            inner: vec::IntoIter::<Entry<T>>::default().enumerate(),
+            inner: vec::IntoIter::<Slot<T>>::default().enumerate(),
         }
     }
 }

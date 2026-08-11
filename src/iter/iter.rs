@@ -2,13 +2,13 @@ use core::convert::TryInto;
 use core::iter::{Enumerate, ExactSizeIterator, FusedIterator};
 use core::slice;
 
-use crate::arena::{Entry, Index};
+use crate::arena::{Index, Slot};
 
 /// See [`Arena::iter`](crate::Arena::iter).
 #[derive(Clone, Debug)]
 pub struct Iter<'a, T> {
     pub(crate) len: u32,
-    pub(crate) inner: Enumerate<slice::Iter<'a, Entry<T>>>,
+    pub(crate) inner: Enumerate<slice::Iter<'a, Slot<T>>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -21,8 +21,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
             }
 
             match self.inner.next()? {
-                (_, Entry::Empty(_)) => (),
-                (slot, Entry::Occupied(occupied)) => {
+                (_, Slot::Empty(_)) => (),
+                (slot, Slot::Occupied(occupied)) => {
                     self.len = self
                         .len
                         .checked_sub(1)
@@ -56,8 +56,8 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
             }
 
             match self.inner.next_back()? {
-                (_, Entry::Empty(_)) => (),
-                (slot, Entry::Occupied(occupied)) => {
+                (_, Slot::Empty(_)) => (),
+                (slot, Slot::Occupied(occupied)) => {
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| {
                         unreachable!("Underflowed u32 trying to iterate Arena in reverse")
                     });
@@ -85,7 +85,7 @@ impl<T> Default for Iter<'_, T> {
     fn default() -> Self {
         Self {
             len: 0,
-            inner: slice::Iter::<Entry<T>>::default().enumerate(),
+            inner: slice::Iter::<Slot<T>>::default().enumerate(),
         }
     }
 }

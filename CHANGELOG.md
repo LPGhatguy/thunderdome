@@ -9,8 +9,11 @@
 * Derived `Debug` for all iterator types.
 * Derived `Clone` for `Iter`, `IntoIter`, `Values`, and `IntoValues` iterators.
 * Implemented `Default` for all iterator types except `Drain`.
+* Added Entry API. ([#50])
 
+[#19]: https://github.com/LPGhatguy/thunderdome/issues/19
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
+[#50]: https://github.com/LPGhatguy/thunderdome/issues/50
 
 ## [0.6.1] - 2023-06-24
 * Added `Index::DANGLING`.
