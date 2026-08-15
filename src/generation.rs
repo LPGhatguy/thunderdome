@@ -8,6 +8,8 @@ use core::num::NonZeroU32;
 /// Uses NonZeroU32 to help `Index` stay the same size when put inside an
 /// `Option`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[repr(transparent)]
 pub(crate) struct Generation(NonZeroU32);
 

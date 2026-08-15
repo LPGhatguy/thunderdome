@@ -87,6 +87,8 @@ pub mod entry;
 mod free_pointer;
 mod generation;
 pub mod iter;
+#[cfg(feature = "serde")]
+mod serde;
 
 pub use crate::arena::{Arena, Index};
 pub use crate::entry::{Entry, OccupiedEntry, VacantEntry};
