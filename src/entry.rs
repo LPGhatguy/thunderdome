@@ -207,6 +207,16 @@ impl<T> Arena<T> {
             Entry::Vacant(VacantEntry { arena: self, index })
         }
     }
+
+    /// Gets a vacant entry in the arena, with its key computed up front.
+    ///
+    /// Unlike [`Arena::entry`], `vacant_entry` computes the same key that
+    /// [`Arena::insert`] would produce, without inserting a value yet, using
+    /// [`Arena::next_index`].
+    pub fn vacant_entry(&mut self) -> VacantEntry<'_, T> {
+        let index = self.next_index();
+        VacantEntry { arena: self, index }
+    }
 }
 
 #[cfg(all(test, feature = "std"))]
@@ -335,6 +345,25 @@ mod test {
             }
             Entry::Occupied(_) => panic!("expected vacant"),
         }
+    }
+
+    #[test]
+    fn vacant_entry_key_matches_insert() {
+        let mut arena = Arena::new();
+        let predicted = arena.vacant_entry().key();
+        let actual = arena.insert(10);
+        assert_eq!(predicted, actual);
+    }
+
+    #[test]
+    fn vacant_entry_insert() {
+        let mut arena = Arena::new();
+        let entry = arena.vacant_entry();
+        let key = entry.key();
+
+        let value = entry.insert(42);
+        assert_eq!(*value, 42);
+        assert_eq!(arena[key], 42);
     }
 
     #[test]
