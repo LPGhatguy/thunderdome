@@ -10,10 +10,12 @@
 * Derived `Clone` for `Iter`, `IntoIter`, `Values`, and `IntoValues` iterators.
 * Implemented `Default` for all iterator types except `Drain`.
 * Added Entry API. ([#50])
+* Added `Arena::next_index` ([#51]) for predicting the key of the next inserted value without mutating the arena.
 
 [#19]: https://github.com/LPGhatguy/thunderdome/issues/19
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
 [#50]: https://github.com/LPGhatguy/thunderdome/issues/50
+[#51]: https://github.com/LPGhatguy/thunderdome/pull/54
 
 ## [0.6.1] - 2023-06-24
 * Added `Index::DANGLING`.
