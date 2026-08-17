@@ -232,13 +232,7 @@ impl<T> Arena<T> {
     /// This is the equivalent of calling [`Arena::vacant_entry`] and then [`Entry::insert`] without requiring
     /// a unique borrow on the arena.
     ///
-    /// ## Limitations
-    ///
-    /// The key produced will never immediately point to an occupied slot, but it may point to a location outside
-    /// the collection which will be created on the next call to [`Arena::insert`].
-    /// If, after calling this function, the arena is mutated in a way that changes its free list or storage
-    /// length — for example via [`Arena::insert`], [`Arena::remove`], etc — then the results of this function
-    /// are no longer accurate to what will be returned from the next [`Arena::insert`] call.
+    /// The returned index is invalidated upon insertion or removal of any element
     pub fn next_index(&self) -> Index {
         if let Some(free_pointer) = self.first_free {
             let slot = free_pointer.slot();
