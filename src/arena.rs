@@ -228,7 +228,7 @@ impl<T> Arena<T> {
 
     /// Compute the `Index` that the next call to [`Arena::insert`] would produce,
     /// without mutating the arena.
-    pub(crate) fn next_index(&self) -> Index {
+    pub fn next_index(&self) -> Index {
         if let Some(free_pointer) = self.first_free {
             let slot = free_pointer.slot();
             let empty = self
