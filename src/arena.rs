@@ -15,13 +15,14 @@ use crate::iter::{Drain, IntoIter, IntoValues, Iter, IterMut, Values, ValuesMut}
 /// Indices use the [`Index`] type, created by inserting values with [`Arena::insert`].
 #[derive(Debug, Clone)]
 pub struct Arena<T> {
-    storage: Vec<Slot<T>>,
-    len: u32,
-    first_free: Option<FreePointer>,
+    pub(crate) storage: Vec<Slot<T>>,
+    pub(crate) len: u32,
+    pub(crate) first_free: Option<FreePointer>,
 }
 
 /// Index type for [`Arena`] that has a generation attached to it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Index {
     pub(crate) slot: u32,
     pub(crate) generation: Generation,
@@ -85,19 +86,33 @@ impl Index {
 #[derive(Debug, Clone)]
 pub(crate) enum Slot<T> {
     Occupied(OccupiedSlot<T>),
-    Empty(EmptySlot),
+    Vacant(VacantSlot),
 }
 
 impl<T> Slot<T> {
-    /// Consume the entry, and if it's occupied, return the value.
-    fn into_value(self) -> Option<T> {
+    pub(crate) fn generation(&self) -> Generation {
         match self {
-            Slot::Occupied(occupied) => Some(occupied.value),
-            Slot::Empty(_) => None,
+            Slot::Occupied(occupied) => occupied.generation,
+            Slot::Vacant(vacant) => vacant.generation,
         }
     }
 
-    fn get_value_mut(&mut self, generation: Generation) -> Option<&mut T> {
+    /// Consume the entry, and if it's occupied, return the value.
+    pub(crate) fn into_value(self) -> Option<T> {
+        match self {
+            Slot::Occupied(occupied) => Some(occupied.value),
+            Slot::Vacant(_) => None,
+        }
+    }
+
+    pub(crate) fn get_value(&self, generation: Generation) -> Option<&T> {
+        match self {
+            Slot::Occupied(occupied) if occupied.generation == generation => Some(&occupied.value),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn get_value_mut(&mut self, generation: Generation) -> Option<&mut T> {
         match self {
             Slot::Occupied(occupied) if occupied.generation == generation => {
                 Some(&mut occupied.value)
@@ -107,17 +122,17 @@ impl<T> Slot<T> {
     }
 
     /// If the entry is empty, a reference to it.
-    fn as_empty(&self) -> Option<&EmptySlot> {
+    fn as_empty(&self) -> Option<&VacantSlot> {
         match self {
-            Slot::Empty(empty) => Some(empty),
+            Slot::Vacant(empty) => Some(empty),
             Slot::Occupied(_) => None,
         }
     }
 
     /// If the entry is empty, return a mutable reference to it.
-    fn as_empty_mut(&mut self) -> Option<&mut EmptySlot> {
+    fn as_empty_mut(&mut self) -> Option<&mut VacantSlot> {
         match self {
-            Slot::Empty(empty) => Some(empty),
+            Slot::Vacant(empty) => Some(empty),
             Slot::Occupied(_) => None,
         }
     }
@@ -130,7 +145,7 @@ pub(crate) struct OccupiedSlot<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct EmptySlot {
+pub(crate) struct VacantSlot {
     pub(crate) generation: Generation,
     pub(crate) next_free: Option<FreePointer>,
 }
@@ -284,7 +299,7 @@ impl<T> Arena<T> {
         //     value.
 
         let (index, old_value) = match self.storage.get_mut(slot as usize) {
-            Some(Slot::Empty(empty)) => {
+            Some(Slot::Vacant(empty)) => {
                 let generation = generation.unwrap_or_else(|| empty.generation.next());
                 // We will need to fix up the free list so that whatever pointer previously pointed
                 // to this empty entry will point to the next empty entry after it.
@@ -308,7 +323,7 @@ impl<T> Arena<T> {
                         unreachable!("Arena storage exceeded what can be represented by a u32")
                     });
 
-                    self.storage.push(Slot::Empty(EmptySlot {
+                    self.storage.push(Slot::Vacant(VacantSlot {
                         generation: Generation::first(),
                         next_free: first_free,
                     }));
@@ -450,7 +465,7 @@ impl<T> Arena<T> {
                 // We can replace an occupied entry with an empty entry with the
                 // same generation. On next insertion, this generation will
                 // increment.
-                let new_entry = Slot::Empty(EmptySlot {
+                let new_entry = Slot::Vacant(VacantSlot {
                     generation: occupied.generation,
                     next_free: self.first_free,
                 });
@@ -541,7 +556,7 @@ impl<T> Arena<T> {
                 // This occupied entry will be replaced with an empty one of the
                 // same generation. Generation will be incremented on the next
                 // insert.
-                let next_entry = Slot::Empty(EmptySlot {
+                let next_entry = Slot::Vacant(VacantSlot {
                     generation: occupied.generation,
                     next_free: self.first_free,
                 });
@@ -641,7 +656,7 @@ impl<T> Arena<T> {
                     // We can replace an occupied entry with an empty entry with the
                     // same generation. On next insertion, this generation will
                     // increment.
-                    *entry = Slot::Empty(EmptySlot {
+                    *entry = Slot::Vacant(VacantSlot {
                         generation: occupied.generation,
                         next_free: self.first_free,
                     });

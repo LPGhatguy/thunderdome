@@ -48,7 +48,7 @@ assert_eq!(arena.get(foo), None);
 | Max Elements                 | 2³²         | 2⁶⁴                | 2³²     | 2⁶⁴  |
 | Non-`Copy` Values            | Yes         | Yes                | Yes     | Yes  |
 | `no_std` Support             | Yes         | Yes                | Yes     | No   |
-| Serde Support                | No          | Yes                | Yes     | No   |
+| Serde Support                | Yes         | Yes                | Yes     | Yes  |
 
 * Sizes calculated on rustc `1.44.0-x86_64-pc-windows-msvc`
 * See [the Thunderdome comparison

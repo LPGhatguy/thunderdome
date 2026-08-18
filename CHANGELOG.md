@@ -10,6 +10,7 @@
 * Derived `Clone` for `Iter`, `IntoIter`, `Values`, and `IntoValues` iterators.
 * Implemented `Default` for all iterator types except `Drain`.
 * Added Entry API. ([#50])
+* Added `serde` support. ([#32])
 
 [#19]: https://github.com/LPGhatguy/thunderdome/issues/19
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
