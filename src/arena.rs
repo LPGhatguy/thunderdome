@@ -226,6 +226,36 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Compute the `Index` that the next call to [`Arena::insert`] would produce,
+    /// without mutating the arena.
+    pub(crate) fn next_index(&self) -> Index {
+        if let Some(free_pointer) = self.first_free {
+            let slot = free_pointer.slot();
+            let empty = self
+                .storage
+                .get(slot as usize)
+                .unwrap_or_else(|| {
+                    unreachable!("first_free pointed past the end of the arena's storage")
+                })
+                .as_empty()
+                .unwrap_or_else(|| unreachable!("first_free pointed to an occupied entry"));
+
+            Index {
+                slot,
+                generation: empty.generation.next(),
+            }
+        } else {
+            let slot: u32 = self.storage.len().try_into().unwrap_or_else(|_| {
+                unreachable!("Arena storage exceeded what can be represented by a u32")
+            });
+
+            Index {
+                slot,
+                generation: Generation::first(),
+            }
+        }
+    }
+
     /// Traverse the free list and remove this known-empty slot from it, given the slot to remove
     /// and the `next_free` pointer of that slot.
     fn remove_slot_from_free_list(&mut self, slot: u32, new_next_free: Option<FreePointer>) {
@@ -981,5 +1011,48 @@ mod test {
     fn index_bits_none_on_zero_generation() {
         let index = Index::from_bits(0x0000_0000_DEAD_BEEF);
         assert_eq!(index, None);
+    }
+
+    #[test]
+    fn next_index_matches_insert() {
+        let mut arena = Arena::new();
+        let predicted = arena.next_index();
+        let actual = arena.insert(1);
+        assert_eq!(predicted, actual);
+    }
+
+    #[test]
+    fn next_index_reuses_freed_slot() {
+        let mut arena = Arena::new();
+        let a = arena.insert(1);
+        arena.insert(2);
+        arena.remove(a);
+
+        let predicted = arena.next_index();
+        assert_eq!(predicted.slot(), a.slot());
+        assert_ne!(predicted.generation, a.generation);
+
+        let actual = arena.insert(3);
+        assert_eq!(predicted, actual);
+    }
+
+    #[test]
+    fn next_index_does_not_mutate() {
+        let mut arena = Arena::new();
+        arena.insert(1);
+
+        // Calling this repeatedly should keep predicting the same index.
+        assert_eq!(arena.next_index(), arena.next_index());
+    }
+
+    #[test]
+    fn next_index_is_not_magic() {
+        let mut arena = Arena::new();
+        let next = arena.next_index();
+        arena.insert(1);
+        let next_next_insert = arena.insert(1);
+
+        // we moved the goalpost, so the next_index won't be accurate anymore
+        assert_ne!(next, next_next_insert);
     }
 }
