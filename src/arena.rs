@@ -1,4 +1,5 @@
 use core::convert::TryInto;
+use core::iter::FromIterator;
 use core::mem::replace;
 use core::ops;
 
@@ -696,6 +697,37 @@ impl<T> Default for Arena<T> {
     }
 }
 
+impl<T> Extend<(Index, T)> for Arena<T> {
+    /// Insert every `(Index, T)` pair from the iterator into the arena, as if by
+    /// [`Arena::insert_at`]. Any value already occupying one of those slots is dropped, and the
+    /// slot takes on the generation of the incoming index, so last entry wins.
+    ///
+    /// Pairs whose slots are in reasonable ascending order — which is what every iterator over an
+    /// [`Arena`] yields — are appended in linear time. Out-of-order slots may need to walk the arena's free
+    /// list, which is worse.
+    fn extend<I: IntoIterator<Item = (Index, T)>>(&mut self, iter: I) {
+        let iter = iter.into_iter();
+        self.reserve(iter.size_hint().0);
+
+        for (index, value) in iter {
+            self.insert_at(index, value);
+        }
+    }
+}
+
+impl<T> FromIterator<(Index, T)> for Arena<T> {
+    /// Build an arena from an iterator of `(Index, T)` pairs, placing each value in the slot named
+    /// by its index. Collecting the output of [`Arena::into_iter`] reproduces an arena in which
+    /// every original [`Index`] is still valid.
+    ///
+    /// See [`Extend::extend`] for how duplicate slots and ordering are handled.
+    fn from_iter<I: IntoIterator<Item = (Index, T)>>(iter: I) -> Self {
+        let mut arena = Arena::new();
+        arena.extend(iter);
+        arena
+    }
+}
+
 impl<T> IntoIterator for Arena<T> {
     type Item = (Index, T);
     type IntoIter = IntoIter<T>;
@@ -869,6 +901,106 @@ mod test {
         let empty = arena.storage.get(3).unwrap().as_empty().unwrap();
         if empty.next_free != Some(FreePointer::from_slot(1)) {
             panic!("Invalid free list: {:#?}", arena);
+        }
+    }
+
+    #[test]
+    fn from_iter_empty() {
+        let arena: Arena<u32> = core::iter::empty().collect();
+        assert!(arena.is_empty());
+    }
+
+    #[test]
+    fn from_iter_roundtrip() {
+        let mut arena = Arena::new();
+        let one = arena.insert(1);
+        let two = arena.insert(2);
+        let three = arena.insert(3);
+
+        // Leave a hole in the middle so the round trip has to handle a vacant slot.
+        assert_eq!(arena.remove(two), Some(2));
+
+        let rebuilt: Arena<u32> = arena.into_iter().collect();
+        assert_eq!(rebuilt.len(), 2);
+        assert_eq!(rebuilt.get(one), Some(&1));
+        assert_eq!(rebuilt.get(three), Some(&3));
+        assert_eq!(rebuilt.get(two), None);
+    }
+
+    #[test]
+    fn from_iter_sparse() {
+        let first = Index {
+            slot: 5,
+            generation: Generation::from_u32(7).unwrap(),
+        };
+        let second = Index {
+            slot: 1,
+            generation: Generation::from_u32(2).unwrap(),
+        };
+
+        // Deliberately out of order, with gaps on either side of `second`.
+        let mut arena: Arena<u32> = IntoIterator::into_iter([(first, 50), (second, 10)]).collect();
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.get(first), Some(&50));
+        assert_eq!(arena.get(second), Some(&10));
+
+        // The free list must still be intact: every vacant slot should be handed out by `insert`
+        // before the arena grows past the six slots it already has.
+        for _ in 0..4 {
+            let index = arena.insert(0);
+            assert!(index.slot() < 6, "unexpected slot {}", index.slot());
+        }
+
+        assert_eq!(arena.len(), 6);
+        assert_eq!(arena.get(first), Some(&50));
+        assert_eq!(arena.get(second), Some(&10));
+    }
+
+    #[test]
+    fn from_iter_duplicate_slot() {
+        let first = Index {
+            slot: 3,
+            generation: Generation::from_u32(1).unwrap(),
+        };
+        let second = Index {
+            slot: 3,
+            generation: Generation::from_u32(9).unwrap(),
+        };
+
+        let arena: Arena<u32> = IntoIterator::into_iter([(first, 10), (second, 20)]).collect();
+        assert_eq!(arena.len(), 1);
+        assert_eq!(arena.get(second), Some(&20));
+        assert_eq!(arena.get(first), None);
+    }
+
+    #[test]
+    fn extend_existing() {
+        let mut arena = Arena::new();
+        let one = arena.insert(1);
+
+        let other = Index {
+            slot: 4,
+            generation: Generation::from_u32(3).unwrap(),
+        };
+        arena.extend([(other, 40)]);
+
+        assert_eq!(arena.len(), 2);
+        assert_eq!(arena.get(one), Some(&1));
+        assert_eq!(arena.get(other), Some(&40));
+    }
+
+    #[test]
+    fn map_arena() {
+        let mut arena = Arena::new();
+        for i in 0..5 {
+            arena.insert(i);
+        }
+
+        let string_arena: Arena<String> = arena.iter().map(|(k, v)| (k, v.to_string())).collect();
+
+        for ((_, number), (_, string)) in arena.iter().zip(string_arena.iter()) {
+            assert_eq!(&number.to_string(), string);
+            assert_eq!(*number, string.parse::<i32>().unwrap());
         }
     }
 
