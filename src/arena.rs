@@ -698,13 +698,13 @@ impl<T> Default for Arena<T> {
 }
 
 impl<T> Extend<(Index, T)> for Arena<T> {
-    /// Insert every `(Index, T)` pair from the iterator into the arena, as if by
-    /// [`Arena::insert_at`]. Any value already occupying one of those slots is dropped, and the
-    /// slot takes on the generation of the incoming index, so last entry wins.
+    /// Insert every (Index, T) pair from the iterator into the arena.
     ///
-    /// Pairs whose slots are in reasonable ascending order — which is what every iterator over an
-    /// [`Arena`] yields — are appended in linear time. Out-of-order slots may need to walk the arena's free
-    /// list, which is worse.
+    /// Internally, insertion is done with [Arena::insert_at]. If a slot is already occupied, its generation and value are replaced with those of iterator's element.
+    ///
+    /// Iterators whose `Index` are in ascending order (what every iterator over an
+    /// [`Arena`] in this crate yields) — are appended in linear time, which is fast.
+    /// Out-of-order slots may need to walk the arena's free list, which is worse.
     fn extend<I: IntoIterator<Item = (Index, T)>>(&mut self, iter: I) {
         let iter = iter.into_iter();
         self.reserve(iter.size_hint().0);
@@ -717,8 +717,7 @@ impl<T> Extend<(Index, T)> for Arena<T> {
 
 impl<T> FromIterator<(Index, T)> for Arena<T> {
     /// Build an arena from an iterator of `(Index, T)` pairs, placing each value in the slot named
-    /// by its index. Collecting the output of [`Arena::into_iter`] reproduces an arena in which
-    /// every original [`Index`] is still valid.
+    /// by its index.
     ///
     /// See [`Extend::extend`] for how duplicate slots and ordering are handled.
     fn from_iter<I: IntoIterator<Item = (Index, T)>>(iter: I) -> Self {
