@@ -23,11 +23,9 @@ impl Generation {
 
     #[must_use]
     pub(crate) fn next(self) -> Self {
-        let last_generation = self.0.get();
-        let next_generation = last_generation.checked_add(1).unwrap_or(1);
+        const ONE: NonZeroU32 = NonZeroU32::new(1).unwrap();
 
-        // This is safe because value that would overflow is instead made 1.
-        Generation(unsafe { NonZeroU32::new_unchecked(next_generation) })
+        Generation(self.0.checked_add(1).unwrap_or(ONE))
     }
 
     pub(crate) const fn to_u32(self) -> u32 {

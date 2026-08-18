@@ -12,13 +12,11 @@ pub(crate) struct FreePointer(NonZeroU32);
 impl FreePointer {
     #[must_use]
     pub(crate) fn from_slot(slot: u32) -> Self {
-        let value = slot
-            .checked_add(1)
-            .expect("u32 overflowed calculating free pointer from u32");
-
-        // This is safe because any u32 + 1 that didn't overflow must not be
-        // zero.
-        FreePointer(unsafe { NonZeroU32::new_unchecked(value) })
+        FreePointer(
+            slot.checked_add(1)
+                .and_then(NonZeroU32::new)
+                .expect("u32 overflowed calculating free pointer from u32"),
+        )
     }
 
     #[must_use]
