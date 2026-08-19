@@ -12,12 +12,14 @@
 * Added Entry API. ([#50])
 * Added `Arena::vacant_entry` ([#57]) for creating an Entry without a key.
 * Added `Arena::next_index` ([#58]) for finding the next index without mutating the Arena.
+* Implemented `FromIterator<(Index, T)>` and `Extend<(Index, T)>` for `Arena`. ([#56])
 
 [#19]: https://github.com/LPGhatguy/thunderdome/issues/19
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
 [#50]: https://github.com/LPGhatguy/thunderdome/issues/50
 [#54]: https://github.com/LPGhatguy/thunderdome/pull/57
 [#58]: https://github.com/LPGhatguy/thunderdome/pull/58
+[#56]: https://github.com/LPGhatguy/thunderdome/pull/56
 
 ## [0.6.1] - 2023-06-24
 * Added `Index::DANGLING`.
