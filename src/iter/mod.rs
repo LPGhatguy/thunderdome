@@ -3,6 +3,7 @@
 mod drain;
 mod into_iter;
 mod into_values;
+#[allow(clippy::module_inception)]
 mod iter;
 mod iter_mut;
 mod values;

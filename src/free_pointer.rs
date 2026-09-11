@@ -20,7 +20,6 @@ impl FreePointer {
     }
 
     #[must_use]
-    #[allow(clippy::arithmetic_side_effects)]
     pub(crate) fn slot(self) -> u32 {
         // This will never underflow due to the field being guaranteed non-zero.
         self.0.get() - 1
