@@ -41,6 +41,9 @@ mod test {
     fn from_slot() {
         let ptr = FreePointer::from_slot(0);
         assert_eq!(ptr.slot(), 0);
+
+        let ptr = FreePointer::from_slot(123456);
+        assert_eq!(ptr.slot(), 123456);
     }
 
     #[test]

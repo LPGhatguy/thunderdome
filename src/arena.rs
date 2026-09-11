@@ -1,6 +1,6 @@
 use core::convert::TryInto;
 use core::mem::replace;
-use core::ops;
+use core::{cmp, ops};
 
 // Vec is part of the prelude when std is enabled.
 #[cfg(not(feature = "std"))]
@@ -442,26 +442,29 @@ impl<T> Arena<T> {
             panic!("Arena::get2_mut is called with two identical indices");
         }
 
-        // Same entry with a different generation. We'll prefer the first value
-        // that matches.
-        if index1.slot == index2.slot {
-            // The borrow checker forces us to index into our storage twice here
-            // due to `return` extending borrows.
-            if self.get(index1).is_some() {
-                return (self.get_mut(index1), None);
-            } else {
-                return (None, self.get_mut(index2));
+        let (entry1, entry2) = match index1.slot.cmp(&index2.slot) {
+            // Same entry with a different generation. We'll prefer the first value
+            // that matches.
+            cmp::Ordering::Equal => {
+                if self.get(index1).is_some() {
+                    return (self.get_mut(index1), None);
+                } else {
+                    return (None, self.get_mut(index2));
+                }
             }
-        }
+            // If the indices point to different slots, we can mutably split the
+            // underlying storage to get the desired entry in each slice.
+            cmp::Ordering::Less => {
+                let (slice1, slice2) = self.storage.split_at_mut(index2.slot as usize);
+                (slice1.get_mut(index1.slot as usize), slice2.get_mut(0))
+            }
 
-        // If the indices point to different slots, we can mutably split the
-        // underlying storage to get the desired entry in each slice.
-        let (entry1, entry2) = if index1.slot > index2.slot {
-            let (slice1, slice2) = self.storage.split_at_mut(index1.slot as usize);
-            (slice2.get_mut(0), slice1.get_mut(index2.slot as usize))
-        } else {
-            let (slice1, slice2) = self.storage.split_at_mut(index2.slot as usize);
-            (slice1.get_mut(index1.slot as usize), slice2.get_mut(0))
+            // If the indices point to different slots, we can mutably split the
+            // underlying storage to get the desired entry in each slice.
+            cmp::Ordering::Greater => {
+                let (slice1, slice2) = self.storage.split_at_mut(index1.slot as usize);
+                (slice2.get_mut(0), slice1.get_mut(index2.slot as usize))
+            }
         };
 
         (
@@ -588,7 +591,7 @@ impl<T> Arena<T> {
 
                 Some((index, value))
             }
-            _ => None,
+            Slot::Empty(_) => None,
         }
     }
 
@@ -771,17 +774,57 @@ mod test {
     }
 
     #[test]
+    fn reservation() {
+        let mut arena: Arena<u32> = Arena::new();
+        assert!(arena.is_empty());
+        assert_eq!(arena.capacity(), 0);
+
+        arena.reserve(128);
+        // we can reserve more than asked, so it's fine to check too much
+        assert!(arena.capacity() >= 128);
+    }
+
+    #[test]
+    fn remove() {
+        let mut arena = Arena::new();
+        let handle_a = arena.insert(1);
+
+        assert_eq!(arena.remove(handle_a), Some(1));
+        // you can't do it twice...
+        assert_eq!(arena.remove(handle_a), None);
+
+        let handle_b = arena.insert(1);
+
+        // we survive the a-b-a problem:
+        assert!(arena.remove(handle_a).is_none());
+        assert!(arena.remove(handle_b).is_some());
+    }
+
+    #[test]
     fn insert_and_get() {
         let mut arena = Arena::new();
 
         let one = arena.insert(1);
         assert_eq!(arena.len(), 1);
         assert_eq!(arena.get(one), Some(&1));
+        assert_eq!(arena.contains_slot(one.slot()).unwrap(), one);
 
         let two = arena.insert(2);
         assert_eq!(arena.len(), 2);
         assert_eq!(arena.get(one), Some(&1));
         assert_eq!(arena.get(two), Some(&2));
+    }
+
+    #[test]
+    fn insert_clear() {
+        let mut arena = Arena::new();
+        assert!(arena.is_empty());
+
+        arena.insert(1);
+        assert!(!arena.is_empty());
+
+        arena.clear();
+        assert!(arena.is_empty());
     }
 
     #[test]
@@ -897,6 +940,15 @@ mod test {
 
         assert_eq!(arena.get(foo), Some(&105));
         assert_eq!(arena.get(bar), Some(&505));
+
+        let (bar_handle, foo_handle) = arena.get2_mut(bar, foo);
+        let bar_handle = bar_handle.unwrap();
+        let foo_handle = foo_handle.unwrap();
+        *bar_handle = 100;
+        *foo_handle = 500;
+
+        assert_eq!(arena.get(foo), Some(&500));
+        assert_eq!(arena.get(bar), Some(&100));
     }
 
     #[test]
@@ -982,6 +1034,11 @@ mod test {
         let new_a = arena.invalidate(a).unwrap();
         assert_eq!(arena.get(a), None);
         assert_eq!(arena.get(new_a), Some(&"a"));
+
+        // you also can't invalidate with the old index:
+        assert_eq!(arena.invalidate(a), None);
+        // and that didn't actually invalidate:
+        assert_eq!(arena.get(new_a), Some(&"a"));
     }
 
     #[test]
@@ -1005,6 +1062,16 @@ mod test {
     fn index_bits_roundtrip() {
         let index = Index::from_bits(0x1BAD_CAFE_DEAD_BEEF).unwrap();
         assert_eq!(index.to_bits(), 0x1BAD_CAFE_DEAD_BEEF);
+    }
+
+    #[test]
+    fn index_properties() {
+        let index = Index {
+            slot: 123,
+            generation: Generation::from_u32(456).unwrap(),
+        };
+        assert_eq!(index.slot(), 123);
+        assert_eq!(index.generation(), 456);
     }
 
     #[test]
@@ -1054,5 +1121,39 @@ mod test {
 
         // we moved the goalpost, so the next_index won't be accurate anymore
         assert_ne!(next, next_next_insert);
+    }
+
+    #[test]
+    fn aba_test() {
+        let mut arena = Arena::new();
+        let index_a = arena.insert('a');
+        assert!(arena.get_mut(index_a).is_some());
+
+        arena.remove(index_a);
+        assert!(arena.get_mut(index_a).is_none());
+
+        let index_b = arena.insert('a');
+        assert!(arena.get_mut(index_b).is_some());
+
+        // we solve the a-b-a problem
+        assert!(arena.get_mut(index_a).is_none());
+        assert_eq!(arena.contains_slot(index_a.slot()).unwrap(), index_b);
+
+        assert_ne!(index_a, index_b);
+    }
+
+    #[test]
+    fn get_by_slot() {
+        let mut arena = Arena::new();
+        let handle_a = arena.insert("a");
+        let handle_b = arena.insert("b");
+        arena.remove(handle_b).unwrap();
+
+        assert_eq!(
+            arena.get_by_slot_mut(handle_a.slot()),
+            Some((handle_a, &mut "a"))
+        );
+        assert_eq!(arena.get_by_slot_mut(handle_b.slot()), None);
+        assert_eq!(arena.get_by_slot_mut(u32::MAX), None);
     }
 }
