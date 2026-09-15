@@ -177,4 +177,18 @@ mod test {
         assert!(pairs.contains(&(three, &3)));
         assert!(pairs.contains(&(four, &4)));
     }
+
+    #[test]
+    fn iter_into_iter() {
+        let mut arena = Arena::with_capacity(2);
+        arena.insert(1);
+        arena.insert(2);
+
+        let arena = &arena;
+        for (idx, value) in arena.into_iter() {
+            assert_eq!(idx.slot() + 1, *value);
+        }
+
+        assert_eq!(arena.into_iter().count(), 2);
+    }
 }
