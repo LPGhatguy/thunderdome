@@ -26,7 +26,7 @@ impl<T> Iterator for IntoIter<T> {
             }
 
             match self.inner.next()? {
-                (_, Slot::Empty(_)) => (),
+                (_, Slot::Vacant(_)) => (),
                 (slot, Slot::Occupied(occupied)) => {
                     self.len = self
                         .len
@@ -61,7 +61,7 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
             }
 
             match self.inner.next_back()? {
-                (_, Slot::Empty(_)) => (),
+                (_, Slot::Vacant(_)) => (),
                 (slot, Slot::Occupied(occupied)) => {
                     self.len = self.len.checked_sub(1).unwrap_or_else(|| {
                         unreachable!("Underflowed u32 trying to iterate Arena in reverse")

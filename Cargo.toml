@@ -16,5 +16,11 @@ rust-version = "1.83.0"
 default = ["std"]
 std = []
 
+[dependencies]
+serde = { version = "1.0", optional = true, default-features = false, features = ["derive", "alloc"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+
 [workspace]
 members = ["benchmark", "comparison"]

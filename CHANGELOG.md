@@ -13,6 +13,7 @@
 * Added `Arena::vacant_entry` ([#57]) for creating an Entry without a key.
 * Added `Arena::next_index` ([#58]) for finding the next index without mutating the Arena.
 * Implemented `FromIterator<(Index, T)>` and `Extend<(Index, T)>` for `Arena`. ([#56])
+* Added `serde` support. ([#32])
 
 [#19]: https://github.com/LPGhatguy/thunderdome/issues/19
 [#43]: https://github.com/LPGhatguy/thunderdome/pull/43
