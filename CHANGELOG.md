@@ -1,7 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
-* Raised MSRV to 1.83.0.
+* Raised MSRV to 1.100.0.
 * Implemented `DoubleEndedIterator` for all iterator types. ([#43])
 * Added `Arena::values` for iterating over values without indexes. ([#19])
 * Added `Arena::values_mut` for mutably iterating over values without indexes. ([#19])

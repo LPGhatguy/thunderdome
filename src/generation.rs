@@ -32,9 +32,9 @@ impl Generation {
         self.0.get()
     }
 
-    pub(crate) const fn from_u32(gen: u32) -> Option<Self> {
+    pub(crate) const fn from_u32(generation: u32) -> Option<Self> {
         // match like this since `map` is not constant
-        match NonZeroU32::new(gen) {
+        match NonZeroU32::new(generation) {
             Some(v) => Some(Generation(v)),
             None => None,
         }
