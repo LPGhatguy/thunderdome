@@ -3,14 +3,13 @@ name = "thunderdome"
 description = "Fast arena allocator with compact generational indices"
 version = "0.6.1"
 authors = ["Lucien Greathouse <me@lpghatguy.com>"]
-edition = "2018"
+edition = "2024"
 documentation = "https://docs.rs/thunderdome"
-homepage = "https://github.com/LPGhatguy/thunderdome"
 repository = "https://github.com/LPGhatguy/thunderdome"
 readme = "README.md"
 keywords = ["arena", "slab", "generational"]
 license = "MIT OR Apache-2.0"
-rust-version = "1.83.0"
+rust-version = "1.100.0"
 
 [features]
 default = ["std"]

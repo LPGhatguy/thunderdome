@@ -16,13 +16,15 @@ jobs:
 
     strategy:
       matrix:
-        rust_version: [stable, "1.83.0"]
+        rust_version: [stable, "1.100.0"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Setup Rust toolchain
-      run: rustup default ${{ matrix.rust_version }}
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust_version }}
 
     - name: Build
       run: cargo build --verbose
