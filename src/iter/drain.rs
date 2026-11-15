@@ -1,5 +1,6 @@
 use core::{
     alloc::Allocator,
+    fmt,
     iter::{ExactSizeIterator, FusedIterator},
 };
 
@@ -12,10 +13,18 @@ use alloc::alloc::Global;
 use std::alloc::Global;
 
 /// See [`Arena::drain`].
-#[derive(Debug)]
 pub struct Drain<'a, T, A: Allocator = Global> {
     pub(crate) arena: &'a mut Arena<T, A>,
     pub(crate) slot: u32,
+}
+
+impl<T: fmt::Debug, A: Allocator> fmt::Debug for Drain<'_, T, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Drain")
+            .field("arena", &self.arena)
+            .field("slot", &self.slot)
+            .finish()
+    }
 }
 
 impl<'a, T, A: Allocator> Iterator for Drain<'a, T, A> {

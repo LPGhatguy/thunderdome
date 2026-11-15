@@ -25,7 +25,7 @@ pub enum Entry<'a, T, A: Allocator = Global> {
     Occupied(OccupiedEntry<'a, T, A>),
 }
 
-impl<T: fmt::Debug, A: Allocator + fmt::Debug> fmt::Debug for Entry<'_, T, A> {
+impl<T: fmt::Debug, A: Allocator> fmt::Debug for Entry<'_, T, A> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Entry::Vacant(v) => f.debug_tuple("Entry").field(v).finish(),
@@ -36,18 +36,34 @@ impl<T: fmt::Debug, A: Allocator + fmt::Debug> fmt::Debug for Entry<'_, T, A> {
 
 /// A view into a vacant entry in an [`Arena`].
 /// It is part of the [`Entry`] enum.
-#[derive(Debug)]
 pub struct VacantEntry<'a, T, A: Allocator = Global> {
     arena: &'a mut Arena<T, A>,
     index: Index,
 }
 
+impl<T: fmt::Debug, A: Allocator> fmt::Debug for VacantEntry<'_, T, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("VacantEntry")
+            .field("arena", &self.arena)
+            .field("index", &self.index)
+            .finish()
+    }
+}
+
 /// A view into an occupied entry in an [`Arena`].
 /// It is part of the [`Entry`] enum.
-#[derive(Debug)]
 pub struct OccupiedEntry<'a, T, A: Allocator = Global> {
     arena: &'a mut Arena<T, A>,
     index: Index,
+}
+
+impl<T: fmt::Debug, A: Allocator> fmt::Debug for OccupiedEntry<'_, T, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OccupiedEntry")
+            .field("arena", &self.arena)
+            .field("index", &self.index)
+            .finish()
+    }
 }
 
 impl<'a, T, A: Allocator> Entry<'a, T, A> {

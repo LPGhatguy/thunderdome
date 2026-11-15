@@ -2,7 +2,7 @@ use core::alloc::Allocator;
 use core::convert::TryInto;
 use core::iter::FromIterator;
 use core::mem::replace;
-use core::{cmp, ops};
+use core::{cmp, fmt, ops};
 
 #[cfg(not(feature = "std"))]
 use alloc::{alloc::Global, vec::Vec};
@@ -17,11 +17,21 @@ use crate::iter::{Drain, IntoIter, IntoValues, Iter, IterMut, Values, ValuesMut}
 /// Container that can have elements inserted into it and removed from it.
 ///
 /// Indices use the [`Index`] type, created by inserting values with [`Arena::insert`].
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Arena<T, A: Allocator = Global> {
     storage: Vec<Slot<T>, A>,
     len: u32,
     first_free: Option<FreePointer>,
+}
+
+impl<T: fmt::Debug, A: Allocator> fmt::Debug for Arena<T, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Arena")
+            .field("storage", &self.storage)
+            .field("len", &self.len)
+            .field("first_free", &self.first_free)
+            .finish()
+    }
 }
 
 /// Index type for [`Arena`] that has a generation attached to it.
