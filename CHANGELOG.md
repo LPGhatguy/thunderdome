@@ -1,7 +1,7 @@
 # Thunderdome Changelog
 
 ## Unreleased Changes
-* Raised MSRV to 1.100.0.
+* Added support for the Allocator trait, which required bumping the MSRV to 1.100.0.
 * Implemented `DoubleEndedIterator` for all iterator types. ([#43])
 * Added `Arena::values` for iterating over values without indexes. ([#19])
 * Added `Arena::values_mut` for mutably iterating over values without indexes. ([#19])
@@ -56,7 +56,7 @@
 * Added `Arena::insert_at` and `Arena::insert_at_slot` for inserting into specific indexes or slots. ([#30])
 
 [#29]: https://github.com/LPGhatguy/thunderdome/pull/29
-[#30]: https://github.com/LPGhatguy/thunderdome/pull/30 
+[#30]: https://github.com/LPGhatguy/thunderdome/pull/30
 [0.4.2]: https://github.com/LPGhatguy/thunderdome/releases/tag/v0.4.2
 
 ## [0.4.1] - 2021-02-24

@@ -1,11 +1,14 @@
+use core::alloc::Allocator;
 use core::convert::TryInto;
 use core::iter::FromIterator;
 use core::mem::replace;
 use core::{cmp, ops};
 
-// Vec is part of the prelude when std is enabled.
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::{alloc::Global, vec::Vec};
+
+#[cfg(feature = "std")]
+use std::alloc::Global;
 
 use crate::free_pointer::FreePointer;
 use crate::generation::Generation;
@@ -15,8 +18,8 @@ use crate::iter::{Drain, IntoIter, IntoValues, Iter, IterMut, Values, ValuesMut}
 ///
 /// Indices use the [`Index`] type, created by inserting values with [`Arena::insert`].
 #[derive(Debug, Clone)]
-pub struct Arena<T> {
-    storage: Vec<Slot<T>>,
+pub struct Arena<T, A: Allocator = Global> {
+    storage: Vec<Slot<T>, A>,
     len: u32,
     first_free: Option<FreePointer>,
 }
@@ -147,8 +150,34 @@ impl<T> Arena<T> {
     /// Construct an empty arena with space to hold exactly `capacity` elements
     /// without reallocating.
     pub fn with_capacity(capacity: usize) -> Self {
+        Self::with_capacity_in(capacity, Global)
+    }
+
+    /// Consume the arena and iterate over all values contained in it.
+    ///
+    /// Iteration order is not defined.
+    pub fn into_values(self) -> IntoValues<T> {
+        IntoValues {
+            inner: self.into_iter(),
+        }
+    }
+}
+
+impl<T, A: Allocator> Arena<T, A> {
+    /// Construct an empty arena in the allocator provided.
+    pub fn new_in(alloc: A) -> Self {
         Self {
-            storage: Vec::with_capacity(capacity),
+            storage: Vec::new_in(alloc),
+            len: 0,
+            first_free: None,
+        }
+    }
+
+    /// Construct an empty arena with space to hold exactly `capacity` elements
+    /// without reallocating in the allocator provided.
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+        Self {
+            storage: Vec::with_capacity_in(capacity, alloc),
             len: 0,
             first_free: None,
         }
@@ -637,15 +666,6 @@ impl<T> Arena<T> {
         }
     }
 
-    /// Consume the arena and iterate over all values contained in it.
-    ///
-    /// Iteration order is not defined.
-    pub fn into_values(self) -> IntoValues<T> {
-        IntoValues {
-            inner: self.into_iter(),
-        }
-    }
-
     /// Returns an iterator that removes each element from the arena.
     ///
     /// Iteration order is not defined.
@@ -653,7 +673,7 @@ impl<T> Arena<T> {
     /// If the iterator is dropped before it is fully consumed, any uniterated
     /// items will be dropped from the arena, and the arena will be empty.
     /// The arena's capacity will not be changed.
-    pub fn drain(&mut self) -> Drain<'_, T> {
+    pub fn drain(&mut self) -> Drain<'_, T, A> {
         Drain {
             arena: self,
             slot: 0,
@@ -690,6 +710,11 @@ impl<T> Arena<T> {
             }
         }
     }
+
+    /// Returns a reference to the underlying allocator.
+    pub fn allocator(&self) -> &A {
+        self.storage.allocator()
+    }
 }
 
 impl<T> Default for Arena<T> {
@@ -698,7 +723,7 @@ impl<T> Default for Arena<T> {
     }
 }
 
-impl<T> Extend<(Index, T)> for Arena<T> {
+impl<T, A: Allocator> Extend<(Index, T)> for Arena<T, A> {
     /// Insert every (Index, T) pair from the iterator into the arena.
     ///
     /// Internally, insertion is done with [Arena::insert_at]. If a slot is already occupied, its generation and value are replaced with those of iterator's element.
@@ -716,7 +741,7 @@ impl<T> Extend<(Index, T)> for Arena<T> {
     }
 }
 
-impl<T> FromIterator<(Index, T)> for Arena<T> {
+impl<T> FromIterator<(Index, T)> for Arena<T, Global> {
     /// Build an arena from an iterator of `(Index, T)` pairs, placing each value in the slot named
     /// by its index.
     ///
@@ -728,7 +753,9 @@ impl<T> FromIterator<(Index, T)> for Arena<T> {
     }
 }
 
-impl<T> IntoIterator for Arena<T> {
+// right now, Vec's IntoIterator type requires `allocator_ext` to name the allocator parameters,
+// which isn't stabilized yet, so we limit our IntoIterator implementation to only the default allocator
+impl<T> IntoIterator for Arena<T, Global> {
     type Item = (Index, T);
     type IntoIter = IntoIter<T>;
 
@@ -740,7 +767,7 @@ impl<T> IntoIterator for Arena<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a Arena<T> {
+impl<'a, T, A: Allocator> IntoIterator for &'a Arena<T, A> {
     type Item = (Index, &'a T);
     type IntoIter = Iter<'a, T>;
 
@@ -749,7 +776,7 @@ impl<'a, T> IntoIterator for &'a Arena<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut Arena<T> {
+impl<'a, T, A: Allocator> IntoIterator for &'a mut Arena<T, A> {
     type Item = (Index, &'a mut T);
     type IntoIter = IterMut<'a, T>;
 
@@ -758,7 +785,7 @@ impl<'a, T> IntoIterator for &'a mut Arena<T> {
     }
 }
 
-impl<T> ops::Index<Index> for Arena<T> {
+impl<T, A: Allocator> ops::Index<Index> for Arena<T, A> {
     type Output = T;
 
     fn index(&self, index: Index) -> &Self::Output {
@@ -767,7 +794,7 @@ impl<T> ops::Index<Index> for Arena<T> {
     }
 }
 
-impl<T> ops::IndexMut<Index> for Arena<T> {
+impl<T, A: Allocator> ops::IndexMut<Index> for Arena<T, A> {
     fn index_mut(&mut self, index: Index) -> &mut Self::Output {
         self.get_mut(index)
             .unwrap_or_else(|| panic!("No entry at index {:?}", index))
@@ -1284,5 +1311,39 @@ mod test {
         );
         assert_eq!(arena.get_by_slot_mut(handle_b.slot()), None);
         assert_eq!(arena.get_by_slot_mut(u32::MAX), None);
+    }
+
+    #[test]
+    fn custom_allocator() {
+        let my_alloc = super::Global;
+
+        assert!(Arena::<usize, _>::new_in(&my_alloc).is_empty());
+
+        let mut arena = Arena::with_capacity_in(100, &my_alloc);
+        assert!(arena.capacity() >= 100);
+
+        // we can at least compare these by address:
+        assert!(core::ptr::eq(*arena.allocator(), &my_alloc));
+
+        // the rest of these just cover each `impl` block, so we know we didn't
+        // mess up the types (which is...very easy to do)
+        let a = arena.insert('a');
+        arena[a] = 'b';
+        assert_eq!(arena[a], 'b');
+        assert_eq!((&arena).into_iter().count(), 1);
+        assert_eq!((&mut arena).into_iter().count(), 1);
+
+        *arena.entry(a).or_insert('z') = 'c';
+        assert_eq!(arena[a], 'c');
+
+        let vacant = arena.vacant_entry();
+        let b = vacant.key();
+        vacant.insert('d');
+
+        arena.extend([(b, 'e')]);
+        assert_eq!(arena[b], 'e');
+
+        assert_eq!(arena.drain().count(), 2);
+        assert!(arena.is_empty());
     }
 }

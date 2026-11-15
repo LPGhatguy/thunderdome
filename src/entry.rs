@@ -1,8 +1,15 @@
 //! Entry API for Thunderdome.
 
+use core::alloc::Allocator;
 use core::fmt;
 
 use crate::arena::{Arena, Index};
+
+#[cfg(not(feature = "std"))]
+use alloc::alloc::Global;
+
+#[cfg(feature = "std")]
+use std::alloc::Global;
 
 /// A view into a single entry in an [`Arena`], which may either be vacant or
 /// occupied.
@@ -10,15 +17,15 @@ use crate::arena::{Arena, Index};
 /// This `enum` is constructed from the [`entry`] method on [`Arena`].
 ///
 /// [`entry`]: Arena::entry
-pub enum Entry<'a, T> {
+pub enum Entry<'a, T, A: Allocator = Global> {
     /// A vacant entry.
-    Vacant(VacantEntry<'a, T>),
+    Vacant(VacantEntry<'a, T, A>),
 
     /// An occupied entry.
-    Occupied(OccupiedEntry<'a, T>),
+    Occupied(OccupiedEntry<'a, T, A>),
 }
 
-impl<T: fmt::Debug> fmt::Debug for Entry<'_, T> {
+impl<T: fmt::Debug, A: Allocator + fmt::Debug> fmt::Debug for Entry<'_, T, A> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Entry::Vacant(v) => f.debug_tuple("Entry").field(v).finish(),
@@ -30,20 +37,20 @@ impl<T: fmt::Debug> fmt::Debug for Entry<'_, T> {
 /// A view into a vacant entry in an [`Arena`].
 /// It is part of the [`Entry`] enum.
 #[derive(Debug)]
-pub struct VacantEntry<'a, T> {
-    arena: &'a mut Arena<T>,
+pub struct VacantEntry<'a, T, A: Allocator = Global> {
+    arena: &'a mut Arena<T, A>,
     index: Index,
 }
 
 /// A view into an occupied entry in an [`Arena`].
 /// It is part of the [`Entry`] enum.
 #[derive(Debug)]
-pub struct OccupiedEntry<'a, T> {
-    arena: &'a mut Arena<T>,
+pub struct OccupiedEntry<'a, T, A: Allocator = Global> {
+    arena: &'a mut Arena<T, A>,
     index: Index,
 }
 
-impl<'a, T> Entry<'a, T> {
+impl<'a, T, A: Allocator> Entry<'a, T, A> {
     /// Ensures a value is in the entry by inserting the default if empty, and
     /// returns a mutable reference to the value in the entry.
     ///
@@ -112,7 +119,7 @@ impl<'a, T> Entry<'a, T> {
     }
 }
 
-impl<'a, T: Default> Entry<'a, T> {
+impl<'a, T: Default, A: Allocator> Entry<'a, T, A> {
     /// Ensures a value is in the entry by inserting the default value if empty,
     /// and returns a mutable reference to the value in the entry.
     ///
@@ -123,7 +130,7 @@ impl<'a, T: Default> Entry<'a, T> {
     }
 }
 
-impl<'a, T> VacantEntry<'a, T> {
+impl<'a, T, A: Allocator> VacantEntry<'a, T, A> {
     /// Gets the key that would be used when inserting a value through the
     /// `VacantEntry`.
     pub fn key(&self) -> Index {
@@ -143,7 +150,7 @@ impl<'a, T> VacantEntry<'a, T> {
     }
 }
 
-impl<'a, T> OccupiedEntry<'a, T> {
+impl<'a, T, A: Allocator> OccupiedEntry<'a, T, A> {
     /// Gets the key in the entry.
     pub fn key(&self) -> Index {
         self.index
@@ -193,14 +200,14 @@ impl<'a, T> OccupiedEntry<'a, T> {
     }
 }
 
-impl<T> Arena<T> {
+impl<T, A: Allocator> Arena<T, A> {
     /// Gets the given key's corresponding entry in the arena for in-place
     /// manipulation.
     ///
     /// The entry is occupied if `index` is currently contained in the arena,
     /// and vacant otherwise (that is, when the slot is empty, out of bounds, or
     /// occupied by a different generation).
-    pub fn entry(&mut self, index: Index) -> Entry<'_, T> {
+    pub fn entry(&mut self, index: Index) -> Entry<'_, T, A> {
         if self.contains(index) {
             Entry::Occupied(OccupiedEntry { arena: self, index })
         } else {
@@ -213,7 +220,7 @@ impl<T> Arena<T> {
     /// Unlike [`Arena::entry`], `vacant_entry` computes the same key that
     /// [`Arena::insert`] would produce, without inserting a value yet, using
     /// [`Arena::next_index`].
-    pub fn vacant_entry(&mut self) -> VacantEntry<'_, T> {
+    pub fn vacant_entry(&mut self) -> VacantEntry<'_, T, A> {
         let index = self.next_index();
         VacantEntry { arena: self, index }
     }
