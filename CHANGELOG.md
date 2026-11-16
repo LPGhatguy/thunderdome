@@ -2,6 +2,8 @@
 
 ## Unreleased Changes
 * Added support for the Allocator trait, which required bumping the MSRV to 1.100.0.
+  * `Arena::into_iter` still requires the `Allocator` to be `Global`, which is the default system allocator.
+  * After Rust 1.101 comes out where Vec's `IntoIter` type can have a generic `Allocator`, then this bound will be lessened.
 * Implemented `DoubleEndedIterator` for all iterator types. ([#43])
 * Added `Arena::values` for iterating over values without indexes. ([#19])
 * Added `Arena::values_mut` for mutably iterating over values without indexes. ([#19])
