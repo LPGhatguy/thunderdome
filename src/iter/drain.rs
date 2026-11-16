@@ -1,15 +1,33 @@
-use core::iter::{ExactSizeIterator, FusedIterator};
+use core::{
+    alloc::Allocator,
+    fmt,
+    iter::{ExactSizeIterator, FusedIterator},
+};
 
 use crate::arena::{Arena, Index};
 
+#[cfg(not(feature = "std"))]
+use alloc::alloc::Global;
+
+#[cfg(feature = "std")]
+use std::alloc::Global;
+
 /// See [`Arena::drain`].
-#[derive(Debug)]
-pub struct Drain<'a, T> {
-    pub(crate) arena: &'a mut Arena<T>,
+pub struct Drain<'a, T, A: Allocator = Global> {
+    pub(crate) arena: &'a mut Arena<T, A>,
     pub(crate) slot: u32,
 }
 
-impl<'a, T> Iterator for Drain<'a, T> {
+impl<T: fmt::Debug, A: Allocator> fmt::Debug for Drain<'_, T, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Drain")
+            .field("arena", &self.arena)
+            .field("slot", &self.slot)
+            .finish()
+    }
+}
+
+impl<'a, T, A: Allocator> Iterator for Drain<'a, T, A> {
     type Item = (Index, T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -44,10 +62,10 @@ impl<'a, T> Iterator for Drain<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for Drain<'a, T> {}
-impl<'a, T> ExactSizeIterator for Drain<'a, T> {}
+impl<'a, T, A: Allocator> FusedIterator for Drain<'a, T, A> {}
+impl<'a, T, A: Allocator> ExactSizeIterator for Drain<'a, T, A> {}
 
-impl<'a, T> Drop for Drain<'a, T> {
+impl<'a, T, A: Allocator> Drop for Drain<'a, T, A> {
     // Continue iterating/dropping if there are any elements left.
     fn drop(&mut self) {
         self.for_each(drop);
